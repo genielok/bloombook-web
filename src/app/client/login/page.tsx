@@ -1,27 +1,26 @@
 import Link from "next/link";
-import { signIn } from "@/auth";
 import { CreateAccountComponent } from "./components/CreateAccountComponent";
 import { SignInComponent } from "./components/SignInComponent";
-import Image from "next/image";
+// import Image from "next/image";
 
-const signInWithGoogle = async () => {
-  "use server";
-  await signIn("google", { redirectTo: "/client/explore" });
-};
+// const signInWithGoogle = async () => {
+//   "use server";
+//   await signIn("google", { redirectTo: "/client/explore" });
+// };
 
-function GoogleSignInButton() {
-  return (
-    <form action={signInWithGoogle}>
-      <button
-        type="submit"
-        className="flex w-full items-center justify-center gap-3 rounded-[10px] border border-[#DADCE0] bg-white px-4 py-3.5 text-[15px] font-semibold text-[#3c4043] transition hover:bg-bloom-soft focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-bloom-accent/25"
-      >
-        <Image src="/google.svg" alt="Google" width={18} height={18} />
-        Continue with Google
-      </button>
-    </form>
-  );
-}
+// function GoogleSignInButton() {
+//   return (
+//     <form action={signInWithGoogle}>
+//       <button
+//         type="submit"
+//         className="flex w-full items-center justify-center gap-3 rounded-[10px] border border-[#DADCE0] bg-white px-4 py-3.5 text-[15px] font-semibold text-[#3c4043] transition hover:bg-bloom-soft focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-bloom-accent/25"
+//       >
+//         <Image src="/google.svg" alt="Google" width={18} height={18} />
+//         Continue with Google
+//       </button>
+//     </form>
+//   );
+// }
 
 export default async function LoginPage({
   searchParams,
@@ -76,7 +75,7 @@ export default async function LoginPage({
           </div>
 
           <div className="mt-8">
-            <GoogleSignInButton />
+            {/* <GoogleSignInButton /> */}
             {isCreatingAccount ? (
               <CreateAccountComponent />
             ) : (

@@ -1,82 +1,62 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Copy, ExternalLink, MailIcon, PhoneCallIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import type {
-  AccountBooking,
-  AccountBookingsResponse,
-} from "@/app/api/account/bookings/types";
-import { getAccountBookings, cancelBooking } from "@/app/api/explore";
-import { Button } from "@/components/ui/button";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Copy,
+  ExternalLink,
+  MailIcon,
+  PhoneCallIcon,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
-const EMPTY_BOOKINGS: AccountBookingsResponse = {
-  upcoming: [],
-  history: [],
-};
+import { fetchBookingDetail, cancelBooking } from "@/app/api/clients/client";
+import { Button } from "@/components/ui/button";
+import { Booking } from "@/app/api/clients/types";
+import dayjs from "dayjs";
+import { statusStyles } from "../components/bookingCard";
+import { AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import Toast from "@/components/Toast";
 
 function formatCurrency(amount?: number) {
   return amount === undefined ? "Not provided" : `€${amount.toFixed(2)}`;
 }
 
-function getBookingDate(displayDateTime?: string) {
-  return displayDateTime?.split(" · ")[0] ?? "Date not provided";
-}
-
-function findBooking(
-  bookings: AccountBookingsResponse,
-  bookingId: string | null,
-) {
-  const allBookings = [...bookings.upcoming, ...bookings.history];
-
-  if (!bookingId) {
-    return allBookings[0];
-  }
-
-  return allBookings.find(
-    (booking) =>
-      booking.bookingId === bookingId || booking.referenceNumber === bookingId,
-  );
-}
-
 export default function ManageBookingPage() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
-  const [bookings, setBookings] =
-    useState<AccountBookingsResponse>(EMPTY_BOOKINGS);
-  const [isLoading, setIsLoading] = useState(true);
+  const [booking, setBooking] = useState<Booking>();
+  const [isLoading, setIsLoading] = useState(Boolean(bookingId));
 
   useEffect(() => {
+    if (!bookingId) return;
     let ignore = false;
 
-    async function loadBooking() {
-      try {
-        const data = await getAccountBookings();
-
-        if (!ignore) {
-          setBookings(data);
-        }
-      } catch (error) {
+    void fetchBookingDetail(bookingId)
+      .then(({ data }) => {
+        if (!ignore) setBooking(data);
+      })
+      .catch((error: unknown) => {
         console.log("Failed to fetch account bookings:", error);
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadBooking();
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
 
     return () => {
       ignore = true;
     };
-  }, []);
-
-  const booking = useMemo(
-    () => findBooking(bookings, bookingId),
-    [bookingId, bookings],
-  );
+  }, [bookingId]);
 
   if (isLoading) {
     return (
@@ -109,25 +89,20 @@ export default function ManageBookingPage() {
   return <BookingDetail booking={booking} />;
 }
 
-function BookingDetail({ booking }: { booking: AccountBooking }) {
-  const serviceItems = booking.serviceItems ?? [
-    {
-      id: booking.bookingId,
-      name: booking.service,
-      duration: booking.duration ?? 0,
-      technician: booking.technician ?? "Not assigned",
-      price: booking.price ?? 0,
-    },
-  ];
-  const totalPaid = booking.totalPaid ?? booking.price;
+function BookingDetail({ booking }: { booking: Booking }) {
+  const router = useRouter();
+
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const { salon, servicesSnapshot } = booking;
 
   async function handleCopyAddress() {
-    if (!booking.studioAddress) {
+    if (!salon.address) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(booking.studioAddress);
+      await navigator.clipboard.writeText(salon.address);
     } catch (error) {
       console.log("Failed to copy address:", error);
     }
@@ -135,10 +110,25 @@ function BookingDetail({ booking }: { booking: AccountBooking }) {
 
   const handleCancel = async () => {
     try {
-      await cancelBooking({ bookingId: booking.bookingId });
+      await cancelBooking({ bookingId: booking.id });
+      setShowSuccess(true);
+      setTimeout(() => {
+        router.push("/client/explore");
+      }, 1400);
     } catch (error) {
       console.log("Failed to cancel:", error);
     }
+  };
+
+  const handleSchedule = () => {
+    const params = {
+      bookingId: booking.id,
+      salonId: booking.salonId,
+      selectedServiceIds: booking.serviceIds,
+    };
+    router.push(
+      `/client/account/reschedule?booking=${encodeURIComponent(JSON.stringify(params))}`,
+    );
   };
 
   return (
@@ -152,7 +142,9 @@ function BookingDetail({ booking }: { booking: AccountBooking }) {
             ← Bookings
           </Link>
           <div className="flex items-center gap-4">
-            <span className="rounded-pill bg-[#E6F0E8] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5C8F6E]">
+            <span
+              className={`rounded-pill px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] ${statusStyles[booking.status] ?? "bg-gray-100 text-gray-700"} `}
+            >
               {booking.status}
             </span>
           </div>
@@ -160,7 +152,7 @@ function BookingDetail({ booking }: { booking: AccountBooking }) {
 
         <h1 className="mt-4 font-display text-[25px] font-medium leading-none text-bloom-text md:text-[35px]">
           Reference Number{" "}
-          <span className="text-bloom-accent">#{booking.referenceNumber}</span>
+          <span className="text-bloom-accent">#{booking.reference}</span>
         </h1>
 
         <section className="mt-9 overflow-hidden rounded-[16px] border border-bloom-border bg-white">
@@ -170,10 +162,10 @@ function BookingDetail({ booking }: { booking: AccountBooking }) {
             </div>
             <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-baseline md:gap-7">
               <div className="font-display text-[24px] leading-none text-bloom-text">
-                {getBookingDate(booking.displayDateTime)}
+                {dayjs(booking.createdAt).format("YYYY-MM-DD HH:mm")}
               </div>
               <div className="text-[15px] text-bloom-subtle">
-                {booking.timeRange ?? booking.displayDateTime}
+                {booking.startTime} - {booking.endTime}
               </div>
             </div>
           </div>
@@ -185,20 +177,20 @@ function BookingDetail({ booking }: { booking: AccountBooking }) {
                   Where
                 </div>
                 <div className="mt-4 text-[19px] font-bold text-bloom-text">
-                  {booking.studioName}, {booking.studioArea}
+                  {salon.name}, {salon.address}
                 </div>
                 <div className="mt-2 flex items-center gap-1 text-[15px] font-semibold text-bloom-accent-dark">
-                  {booking.studioAddress}
+                  {salon.address}
                   <ExternalLink className="h-3.5 w-3.5" />
                 </div>
                 <div className="mt-2 text-[15px]  text-bloom-subtle">
                   <div className="flex align-middle">
                     <PhoneCallIcon size={15} className="mr-2 h-6 " />
-                    {booking.studioPhone}
+                    {salon.phone}
                   </div>
                   <div className="flex">
                     <MailIcon size={15} className="mr-2 h-6 " />
-                    {booking.studioEmail}
+                    {salon.email}
                   </div>
                 </div>
               </div>
@@ -220,7 +212,7 @@ function BookingDetail({ booking }: { booking: AccountBooking }) {
             </div>
 
             <div className="mt-5 space-y-5">
-              {serviceItems.map((item) => (
+              {servicesSnapshot.map((item) => (
                 <div
                   key={item.id}
                   className="flex items-start justify-between gap-6"
@@ -230,7 +222,7 @@ function BookingDetail({ booking }: { booking: AccountBooking }) {
                       {item.name}
                     </div>
                     <div className="mt-1 text-[13px] font-semibold text-bloom-subtle">
-                      {item.duration} min · with {item.technician}
+                      {item.durationMinutes} min
                     </div>
                   </div>
                   <div className="text-[15px] font-bold text-bloom-text">
@@ -238,44 +230,63 @@ function BookingDetail({ booking }: { booking: AccountBooking }) {
                   </div>
                 </div>
               ))}
-
-              {booking.promoLabel && booking.promoDiscount !== undefined && (
-                <div className="flex items-center justify-between gap-6 text-[15px] font-bold text-bloom-success">
-                  <span>{booking.promoLabel}</span>
-                  <span>-{formatCurrency(booking.promoDiscount)}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-7 border-t border-bloom-border pt-7">
-              <div className="flex items-end justify-between gap-6">
-                <div className="text-[14px] font-bold text-bloom-subtle">
-                  Total paid · {booking.paymentMethod} ••
-                  {booking.paymentLast4}
-                </div>
-                <div className="font-display text-[26px] leading-none text-bloom-text">
-                  {formatCurrency(totalPaid)}
-                </div>
-              </div>
             </div>
           </div>
         </section>
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Button
-            onClick={handleCancel}
-            className="rounded-full bg-bloom-text px-9 py-7 text-[17px] font-bold text-bloom-bg hover:bg-bloom-text/90"
-          >
-            Cancel booking
-          </Button>
-        </div>
-
-        <p className="mt-5 text-[15px] font-semibold text-bloom-subtle">
-          Free to reschedule or cancel up to{" "}
-          <span className="font-bold text-bloom-text">24 hours before</span>{" "}
-          your appointment.
-        </p>
+        {booking.status !== "cancelled" && (
+          <>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button
+                onClick={handleSchedule}
+                className="rounded-full  px-9 py-7 text-[17px] font-bold  "
+              >
+                Reschedule
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger>
+                  <Button
+                    variant="outline"
+                    className="rounded-full bg-bloom-text px-9 py-7 text-[17px] font-bold text-bloom-bg hover:bg-bloom-text/90"
+                  >
+                    Cancel booking
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+                  </AlertDialogHeader>
+                  <AlertDescription>
+                    Are you sure you want to cancel this booking?
+                  </AlertDescription>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCancel}>
+                      Continue
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+            <div>
+              <p className="mt-5 text-[15px] font-semibold text-bloom-subtle">
+                Free to reschedule or cancel up to{" "}
+                <span className="font-bold text-bloom-text">
+                  24 hours before
+                </span>{" "}
+                your appointment.
+              </p>
+            </div>
+          </>
+        )}
       </div>
+      <Toast
+        visible={showSuccess}
+        type="success"
+        message="Booking updated successfully"
+        onClose={() => setShowSuccess(false)}
+        duration={1800}
+      />
     </div>
   );
 }

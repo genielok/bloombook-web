@@ -1,18 +1,30 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "./components/Card";
 import { CategoryFilters } from "./components/CategoryFilters";
-import { CATEGORIES } from "./constans";
-import { getStudios, IStudio } from "@/app/api/explore";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import {
+  ECategory,
+  IStudio,
+  SearchStudioParams,
+} from "@/app/api/clients/types";
+import { getStudios } from "@/app/api/clients/client";
 
-const INITIAL_SEARCH_TEXT = {
-  salon: "",
-  location: "Berlin, DE",
+const INITIAL_SEARCH_TEXT: SearchStudioParams = {
+  searchText: "",
+  location: "",
   category: "all",
 };
+
+const CATEGORIES: { label: string; value: string }[] = Object.keys(
+  ECategory,
+).map((key) => ({
+  label: Object.values(ECategory).find((value) => value === key) || key,
+  value: key,
+}));
 
 export function ExplorePageClient() {
   const router = useRouter();
@@ -20,7 +32,6 @@ export function ExplorePageClient() {
   const [studioList, setStudioList] = useState<IStudio[]>([]);
   const [total, setTotal] = useState(0);
   const [isFetchingStudios, setIsFetchingStudios] = useState(true);
-  const requestIdRef = useRef(0);
   const [location] = useState({
     city: "Berlin",
     country: "DE",
@@ -28,62 +39,25 @@ export function ExplorePageClient() {
   const [searchText, setSearchText] = useState(INITIAL_SEARCH_TEXT);
 
   useEffect(() => {
-    let ignore = false;
-
-    async function loadInitialStudios() {
-      setIsFetchingStudios(true);
-
-      try {
-        const data = await getStudios(INITIAL_SEARCH_TEXT);
-
-        if (!ignore) {
-          setStudioList(data.dataList);
-          setTotal(data.total);
-        }
-      } catch (error) {
-        console.log("Failed to fetch studios:", error);
-      } finally {
-        if (!ignore) {
-          setIsFetchingStudios(false);
-        }
-      }
-    }
-
-    void loadInitialStudios();
-
-    return () => {
-      ignore = true;
-    };
+    fetchStudios(INITIAL_SEARCH_TEXT);
   }, []);
 
-  async function fetchStudios(params?: {
-    salon?: string;
-    location?: string;
-    category?: string;
-  }) {
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
+  async function fetchStudios(params: SearchStudioParams) {
     setIsFetchingStudios(true);
-
     try {
-      const curParams = params
-        ? {
-            ...searchText,
-            ...params,
-          }
-        : searchText;
+      const curParams = {
+        ...params,
+        category: params.category === "all" ? undefined : params.category,
+      };
+
       const data = await getStudios(curParams);
 
-      if (requestId === requestIdRef.current) {
-        setStudioList(data.dataList);
-        setTotal(data.total);
-      }
+      setStudioList(data.data);
+      setTotal(data.total);
     } catch (error) {
       console.log("Failed to fetch studios:", error);
     } finally {
-      if (requestId === requestIdRef.current) {
-        setIsFetchingStudios(false);
-      }
+      setIsFetchingStudios(false);
     }
   }
 
@@ -93,15 +67,9 @@ export function ExplorePageClient() {
 
   const handleCategoryChange = (value: string) => {
     setSearchText({ ...searchText, category: value });
-    void fetchStudios({ category: value });
+    fetchStudios({ ...searchText, category: value });
   };
-  const handleSearch = async () => {
-    void fetchStudios({
-      location: searchText.location,
-      salon: searchText.salon,
-      category: searchText.category,
-    });
-  };
+
   return (
     <>
       {/* HERO + SEARCH */}
@@ -139,9 +107,9 @@ export function ExplorePageClient() {
               <Input
                 className="!h-auto !border-0 !bg-transparent !p-0 !shadow-none !ring-0 focus-visible:!ring-0"
                 placeholder="search..."
-                value={searchText.salon}
+                value={searchText.searchText}
                 onChange={(e) =>
-                  setSearchText({ ...searchText, salon: e.target.value })
+                  setSearchText({ ...searchText, searchText: e.target.value })
                 }
               />
             </div>
@@ -185,7 +153,7 @@ export function ExplorePageClient() {
                                 bg-bloom-accent px-[30px]
                                 text-[15px] font-semibold text-bloom-bg
                                 "
-                onClick={handleSearch}
+                onClick={() => fetchStudios(searchText)}
               >
                 {isFetchingStudios ? "Searching..." : "Search"}
               </Button>

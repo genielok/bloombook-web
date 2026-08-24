@@ -11,7 +11,7 @@ const STEPS: Step[] = [
   { value: 1, label: "Choose service" },
   { value: 2, label: "Date & time" },
   { value: 3, label: "Your details" },
-  { value: 4, label: "Payment" },
+  // { value: 4, label: "Payment" },
 ];
 
 interface BookingStepperProps {
@@ -27,7 +27,7 @@ export function BookingStepper({ currentStep }: BookingStepperProps) {
 
         return (
           <div key={step.value} className="flex items-center">
-            <div className="flex flex-col items-center gap-1.5">
+            <div className="flex  items-center gap-1.5">
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                   isComplete
@@ -49,7 +49,7 @@ export function BookingStepper({ currentStep }: BookingStepperProps) {
             </div>
             {index < STEPS.length - 1 && (
               <div
-                className={`w-10 h-px mx-2 mb-5 sm:w-16 ${
+                className={`self-center w-6 h-px mx-2 sm:w-16 ${
                   step.value < currentStep
                     ? "bg-bloom-success"
                     : "bg-bloom-border"

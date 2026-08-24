@@ -1,4 +1,3 @@
-import { getBookingDetailData } from "@/app/api/bookingDetail/data";
 import { ConfirmPageClient } from "./confirmPageClient";
 
 interface ConfirmPageProps {
@@ -7,8 +6,5 @@ interface ConfirmPageProps {
 
 export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
   const { bookingId } = await searchParams;
-
-  const bookingDetail = getBookingDetailData(bookingId);
-
-  return <ConfirmPageClient bookingDetail={bookingDetail} />;
+  return <ConfirmPageClient bookingId={bookingId} />;
 }

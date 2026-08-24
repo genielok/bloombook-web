@@ -1,10 +1,12 @@
 "use client";
 
-import { createAccount } from "@/app/api/explore";
+import { createAccount } from "@/app/api/clients/client";
 import { Button } from "@/components/ui/button";
 import { PaymentField } from "@/components/ui/field";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import React, { useState } from "react";
+import { getApiFieldErrors, getErrorMessage } from "@/lib/func";
 
 type CreateAccountErrors = Partial<{
   firstName: string;
@@ -17,24 +19,19 @@ type CreateAccountErrors = Partial<{
 export const CreateAccountComponent = () => {
   const router = useRouter();
   const [firstName, setFirstName] = useState("Sofia");
-  const [lastName, setLastName] = useState("Lindqvist");
   const [email, setEmail] = useState("sofia.l@email.com");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<CreateAccountErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   function validateForm() {
     const nextErrors: CreateAccountErrors = {};
     const trimmedFirstName = firstName.trim();
-    const trimmedLastName = lastName.trim();
     const trimmedEmail = email.trim();
 
     if (!trimmedFirstName) {
-      nextErrors.firstName = "First name is required.";
-    }
-
-    if (!trimmedLastName) {
-      nextErrors.lastName = "Last name is required.";
+      nextErrors.firstName = "Name is required.";
     }
 
     if (!trimmedEmail) {
@@ -65,19 +62,6 @@ export const CreateAccountComponent = () => {
     });
   }
 
-  function getSubmitErrorMessage(error: unknown) {
-    if (!(error instanceof Error)) {
-      return "Could not create account. Please try again.";
-    }
-
-    try {
-      const parsed = JSON.parse(error.message) as { message?: string };
-      return parsed.message ?? error.message;
-    } catch {
-      return error.message;
-    }
-  }
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -91,22 +75,23 @@ export const CreateAccountComponent = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await createAccount({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+      const { data } = await createAccount({
+        name: firstName.trim(),
         email: email.trim(),
         password,
       });
-
-      if (!response.ok) {
-        throw new Error(response.message);
-      }
-
-      router.push("/client/login");
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      router.push("/client/explore");
       router.refresh();
     } catch (error) {
+      const fieldErrors = getApiFieldErrors(error);
+      const hasFieldErrors = Object.keys(fieldErrors).length > 0;
       setErrors({
-        form: getSubmitErrorMessage(error),
+        firstName: fieldErrors.name ?? fieldErrors.firstName,
+        email: fieldErrors.email,
+        password: fieldErrors.password,
+        form: hasFieldErrors ? undefined : getErrorMessage(error),
       });
     } finally {
       setIsSubmitting(false);
@@ -121,35 +106,19 @@ export const CreateAccountComponent = () => {
         <div className="h-px flex-1 bg-bloom-border" />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <PaymentField
-          label="First name"
-          name="firstName"
-          value={firstName}
-          onChange={(value) => {
-            setFirstName(value);
-            clearError("firstName");
-          }}
-          placeholder="Sofia"
-          autoComplete="given-name"
-          required
-          error={errors.firstName}
-        />
-
-        <PaymentField
-          label="Last name"
-          name="lastName"
-          value={lastName}
-          onChange={(value) => {
-            setLastName(value);
-            clearError("lastName");
-          }}
-          placeholder="Lindqvist"
-          autoComplete="family-name"
-          required
-          error={errors.lastName}
-        />
-      </div>
+      <PaymentField
+        label="Name"
+        name="firstName"
+        value={firstName}
+        onChange={(value) => {
+          setFirstName(value);
+          clearError("firstName");
+        }}
+        placeholder="name"
+        autoComplete="given-name"
+        required
+        error={errors.firstName}
+      />
 
       <PaymentField
         label="Email"
@@ -160,7 +129,7 @@ export const CreateAccountComponent = () => {
           setEmail(value);
           clearError("email");
         }}
-        placeholder="sofia.l@email.com"
+        placeholder="xxx@email.com"
         autoComplete="email"
         required
         error={errors.email}
@@ -168,17 +137,31 @@ export const CreateAccountComponent = () => {
 
       <PaymentField
         label="Password"
-        type="password"
+        type={showPassword ? "text" : "password"}
         name="password"
         value={password}
         onChange={(value) => {
           setPassword(value);
           clearError("password");
         }}
-        placeholder="••••••••"
+        placeholder="•••"
         autoComplete="new-password"
         required
         error={errors.password}
+        suffix={
+          <button
+            type="button"
+            onClick={() => setShowPassword((current) => !current)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-bloom-subtle transition-colors hover:text-bloom-text"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </button>
+        }
       />
 
       <Button

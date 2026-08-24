@@ -1,27 +1,33 @@
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import React from 'react'
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React from "react";
 
 interface Pros {
-    category: {
-        label: string,
-        value: string
-    }[],
-    defaulValue: string,
-    onCategoryChange: (value: string) => void
+  category: {
+    label: string;
+    value: string;
+  }[];
+  defaulValue: string;
+  onCategoryChange: (value: string) => void;
 }
 export const CategoryFilters = (props: Pros) => {
-    const { category: categories, defaulValue = "", onCategoryChange } = props
-    return (
-        <Tabs defaultValue={defaulValue} className="w-full" onValueChange={(value: string) => onCategoryChange(value)}>
-            <TabsList className="
+  const { category: categories, defaulValue = "", onCategoryChange } = props;
+  return (
+    <Tabs
+      defaultValue={defaulValue}
+      className="w-full"
+      onValueChange={(value: string) => onCategoryChange(value)}
+    >
+      <TabsList
+        className="
           h-auto 
           bg-transparent p-0
-        ">
-                {categories.map((category) => (
-                    <TabsTrigger
-                        key={category.value}
-                        value={category.value}
-                        className="
+        "
+      >
+        {categories.map((category) => (
+          <TabsTrigger
+            key={category.value}
+            value={category.value}
+            className="
                             mr-3
                             px-[22px]
                             py-[22px]
@@ -34,11 +40,11 @@ export const CategoryFilters = (props: Pros) => {
                             data-[state=active]:bg-[#211b17]
                             data-[state=active]:text-white
             "
-                    >
-                        {category.label}
-                    </TabsTrigger>))}
-            </TabsList>
-        </Tabs>
-
-    )
-}
+          >
+            {category.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  );
+};

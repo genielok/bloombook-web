@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { User } from "@/types/user";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   SidebarContent,
@@ -17,6 +16,8 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { LogOutIcon } from "lucide-react";
+import { getAssetUrl } from "@/lib/func";
+import { useStoredUser } from "@/hooks/use-stored-user";
 
 const accountNavItems = [
   {
@@ -24,10 +25,10 @@ const accountNavItems = [
     href: "/client/account/booking",
     aliases: ["/client/account/manageBooking"],
   },
-  {
-    label: "Payment methods",
-    href: "/client/account/payment",
-  },
+  // {
+  //   label: "Payment methods",
+  //   href: "/client/account/payment",
+  // },
   {
     label: "Profile",
     href: "/client/account/profile",
@@ -49,8 +50,9 @@ function isActivePath(
   );
 }
 
-export function AccountSidebarContent({ user }: { user?: User }) {
+export function AccountSidebarContent() {
   const pathname = usePathname();
+  const user = useStoredUser();
 
   return (
     <>
@@ -58,9 +60,8 @@ export function AccountSidebarContent({ user }: { user?: User }) {
         <div className="flex items-center gap-3">
           <Avatar>
             <AvatarImage
-              src={user?.avatarUrl}
+              src={getAssetUrl(user?.avatarImg)}
               alt={user?.name ?? "Account"}
-              className="grayscale"
             />
             <AvatarFallback>CN</AvatarFallback>
           </Avatar>
@@ -78,8 +79,6 @@ export function AccountSidebarContent({ user }: { user?: User }) {
             <SidebarMenu className="gap-1">
               {accountNavItems.map((item) => {
                 const isActive = isActivePath(pathname, item);
-                console.log({ isActive });
-
                 return (
                   <SidebarMenuItem key={item.label}>
                     <SidebarMenuButton

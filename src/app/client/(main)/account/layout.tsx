@@ -3,7 +3,6 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-import { getCurrentUser } from "@/lib/mockAuth";
 import { AccountSidebarContent } from "./components/accountSidebarContent";
 import type { ReactNode } from "react";
 
@@ -12,8 +11,6 @@ export default async function AccountLayout({
 }: {
   children: ReactNode;
 }) {
-  const user = await getCurrentUser();
-
   return (
     <div className="min-h-[calc(100svh-89px)] overflow-hidden bg-bloom-bg lg:rounded-sm">
       <SidebarProvider className="min-h-[calc(100svh-89px)] items-stretch">
@@ -21,7 +18,7 @@ export default async function AccountLayout({
           collapsible="none"
           className="hidden h-auto self-stretch border-r border-bloom-border bg-bloom-soft lg:flex"
         >
-          <AccountSidebarContent user={user} />
+          <AccountSidebarContent />
         </Sidebar>
 
         <SidebarInset className="bg-bloom-bg">{children}</SidebarInset>

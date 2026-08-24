@@ -1,12 +1,10 @@
 "use client";
-import {
-  AccountBooking,
-  AccountBookingsResponse,
-} from "@/app/api/account/bookings/types";
-import { getAccountBookings } from "@/app/api/explore";
+
+import { getMyBookings } from "@/app/api/clients/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 import { BookingCard } from "../components/bookingCard";
+import { Booking } from "@/app/api/clients/types";
 
 const BOOKING_TABS = [
   { value: "upcoming", label: "Upcoming" },
@@ -15,17 +13,12 @@ const BOOKING_TABS = [
 
 type BookingTab = (typeof BOOKING_TABS)[number]["value"];
 
-const EMPTY_BOOKINGS: AccountBookingsResponse = {
-  upcoming: [],
-  history: [],
-};
-
 function BookingList({
   bookings,
   isLoading,
   activeTab,
 }: {
-  bookings: AccountBooking[];
+  bookings: Booking[];
   isLoading: boolean;
   activeTab: BookingTab;
 }) {
@@ -45,40 +38,35 @@ function BookingList({
     );
   }
 
-  return bookings.map((booking, index) => (
+  return bookings.map((booking) => (
     <BookingCard
-      key={booking.bookingId}
+      key={booking.id}
       booking={booking}
-      index={index}
       activeTab={activeTab}
     />
   ));
 }
 
 export default function BookingPage() {
-  const [bookings, setBookings] =
-    useState<AccountBookingsResponse>(EMPTY_BOOKINGS);
+  const [comingBookings, setComingBookings] = useState<Booking[]>([]);
+  const [historyBookings, setHistoryBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let ignore = false;
 
-    async function loadBookings() {
-      try {
-        const data = await getAccountBookings();
-        if (!ignore) {
-          setBookings(data);
-        }
-      } catch (error) {
+    void Promise.all([getMyBookings("upcoming"), getMyBookings("history")])
+      .then(([upcoming, history]) => {
+        if (ignore) return;
+        setComingBookings(upcoming.data);
+        setHistoryBookings(history.data);
+      })
+      .catch((error: unknown) => {
         console.log("Failed to fetch account bookings:", error);
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadBookings();
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
 
     return () => {
       ignore = true;
@@ -102,7 +90,11 @@ export default function BookingPage() {
         <TabsList>
           {BOOKING_TABS.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
-              {tab.label} ({bookings[tab.value].length})
+              {tab.label} (
+              {tab.label === "History"
+                ? historyBookings.length
+                : comingBookings?.length}
+              )
             </TabsTrigger>
           ))}
         </TabsList>
@@ -110,7 +102,9 @@ export default function BookingPage() {
           <TabsContent key={tab.value} value={tab.value}>
             <div className="mt-[26px] flex flex-col gap-3">
               <BookingList
-                bookings={bookings[tab.value]}
+                bookings={
+                  tab.label === "History" ? historyBookings : comingBookings
+                }
                 isLoading={isLoading}
                 activeTab={tab.value}
               />

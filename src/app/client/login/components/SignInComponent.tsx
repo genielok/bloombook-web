@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn } from "@/app/api/explore";
+import { signIn } from "@/app/api/clients/client";
 import { Button } from "@/components/ui/button";
 import { PaymentField } from "@/components/ui/field";
 import Link from "next/link";
@@ -36,12 +36,6 @@ export const SignInComponent = () => {
 
   return (
     <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-bloom-border" />
-        <span className="text-xs text-bloom-subtle">or sign in with email</span>
-        <div className="h-px flex-1 bg-bloom-border" />
-      </div>
-
       <PaymentField
         label="Email"
         type="email"
