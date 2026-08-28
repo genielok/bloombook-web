@@ -1,56 +1,94 @@
 "use client";
 
-import { useState, type FormEventHandler } from "react";
+import { SubmitEventHandler, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 
 import { AdminFormField, AdminInput } from "../../components/admin-form";
-import { SettingsSaveButton } from "./settings-ui";
+import { Spinner } from "@/components/ui/spinner";
+import { handleUpdateAdminAccount } from "@/app/api/admins/admin";
+import { Button } from "@/components/ui/button";
+import Toast from "@/components/Toast";
+import type { AccountFormValues } from "../page";
 
-export function AccountSettingsForm() {
-  const [saved, setSaved] = useState(false);
+type Params = {
+  accountInfo: AccountFormValues;
+  onSave: (values: AccountFormValues) => Promise<void>;
+};
 
-  const submit: FormEventHandler<HTMLFormElement> = (event) => {
-    event.preventDefault();
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
-  };
+export function AccountSettingsForm({ accountInfo, onSave }: Params) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<AccountFormValues>({
+    values: accountInfo,
+  });
+
+  const submit: SubmitEventHandler<HTMLFormElement> = handleSubmit(
+    async (data) => {
+      try {
+        await onSave(data);
+      } catch (error) {
+        console.error("Error submitting form:", error);
+      }
+    },
+    (errors) => {
+      console.error("Validation error", errors);
+    },
+  );
 
   return (
-    <form
-      onSubmit={submit}
-      className="rounded-[10px] border border-bloom-border bg-white px-[26px] py-6"
-    >
-      <div className="flex flex-col gap-4">
-        <AdminFormField label="Full name" htmlFor="account-name" required>
-          <AdminInput
-            id="account-name"
-            name="fullName"
-            defaultValue="Mara Voss"
-            required
-          />
-        </AdminFormField>
-        <AdminFormField label="Email" htmlFor="account-email" required>
-          <AdminInput
-            id="account-email"
-            name="email"
-            type="email"
-            defaultValue="mara@petalstudio.com"
-            required
-          />
-        </AdminFormField>
-        <AdminFormField label="New password" htmlFor="account-password">
-          <AdminInput
-            id="account-password"
-            name="password"
-            type="password"
-            placeholder="••••••••"
-            autoComplete="new-password"
-          />
-        </AdminFormField>
-
-        <div>
-          <SettingsSaveButton saved={saved}>Save account</SettingsSaveButton>
+    <>
+      <form
+        onSubmit={submit}
+        className="rounded-[10px] border border-bloom-border bg-white px-[26px] py-6"
+      >
+        <div className="flex flex-col gap-4">
+          <AdminFormField label="Full name" htmlFor="account-name" required>
+            <AdminInput
+              required
+              {...register("name", {
+                required: "Name is required",
+                minLength: {
+                  value: 2,
+                  message: "Name must be at least 2 characters",
+                },
+              })}
+              aria-invalid={errors.name ? "true" : "false"}
+            />
+            {errors.name && (
+              <span role="alert" className="text-red-500 text-sm">
+                {errors.name.message}
+              </span>
+            )}
+          </AdminFormField>
+          <AdminFormField label="Email" htmlFor="account-email" required>
+            <AdminInput
+              {...register("email", {
+                required: "Email is required",
+                pattern: {
+                  value: /^\S+@\S+$/i,
+                  message: "Invalid email address",
+                },
+              })}
+              type="email"
+              required
+            />
+            {errors.email && (
+              <span role="alert" className="text-red-500 text-sm">
+                {errors.email.message}
+              </span>
+            )}
+          </AdminFormField>
+          <div>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Spinner data-icon="inline-start" />}
+              {isSubmitting ? "Saving..." : "Save changes"}
+            </Button>
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -13,29 +12,60 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { adminServices } from "../components/services-data";
+import {
+  AdminService,
+  SERVICE_CATEGORY_LABELS,
+} from "../components/services-data";
 import { getServiceColumns } from "./const";
+import { getServiceList } from "@/app/api/admins/admin";
+import { ServiceDialog } from "./service-dialog";
 
 export default function AdminServicesPage() {
-  const [services, setServices] = useState(adminServices);
+  const [services, setServices] = useState<AdminService[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingService, setEditingService] = useState<AdminService | null>(
+    null,
+  );
   const categories = useMemo(
-    () => Array.from(new Set(services.map((service) => service.category))),
+    () =>
+      Array.from(new Set(services.map((service) => service.serviceCategory))),
     [services],
   );
+  const fetchServiceList = async () => {
+    try {
+      const { data } = await getServiceList();
+      setServices(data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  useEffect(() => {
+    void getServiceList()
+      .then(({ data }) => setServices(data))
+      .catch((error) => console.log(error));
+  }, []);
 
   const toggleService = useCallback((id: string) => {
     setServices((current) =>
       current.map((service) =>
-        service.id === id
-          ? { ...service, active: !service.active }
-          : service,
+        service.id === id ? { ...service, active: !service.active } : service,
       ),
     );
   }, []);
 
+  const openCreateDialog = () => {
+    setEditingService(null);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = useCallback((service: AdminService) => {
+    setEditingService(service);
+    setDialogOpen(true);
+  }, []);
+
   const columns = useMemo(
-    () => getServiceColumns(toggleService),
-    [toggleService],
+    () => getServiceColumns(toggleService, openEditDialog),
+    [openEditDialog, toggleService],
   );
 
   return (
@@ -43,7 +73,6 @@ export default function AdminServicesPage() {
       <DataTable
         columns={columns}
         data={services}
-        showPagination={false}
         tableClassName="min-w-[900px]"
         emptyMessage="No services found."
         toolbar={(table) => {
@@ -67,23 +96,28 @@ export default function AdminServicesPage() {
                   <SelectItem value="All">All categories</SelectItem>
                   {categories.map((item) => (
                     <SelectItem key={item} value={item}>
-                      {item}
+                      {SERVICE_CATEGORY_LABELS[item]}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
               <Button
-                asChild
+                type="button"
+                onClick={openCreateDialog}
                 className="h-9 bg-bloom-text px-4 text-[13px] font-semibold text-bloom-bg hover:bg-bloom-text/90"
               >
-                <Link href="/admin/services/new">
-                  <Plus /> Add service
-                </Link>
+                <Plus /> Add service
               </Button>
             </div>
           );
         }}
+      />
+      <ServiceDialog
+        open={dialogOpen}
+        editingService={editingService}
+        onOpenChange={setDialogOpen}
+        onSaved={fetchServiceList}
       />
     </div>
   );

@@ -45,6 +45,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { logoutAdmin } from "@/app/api/admins/admin";
 
 type NavigationItem = {
   title: string;
@@ -109,7 +110,7 @@ function AdminLogoutButton({
 
   const logout = async () => {
     try {
-      await fetch("/api/admins/session", { method: "DELETE" });
+      await logoutAdmin();
     } finally {
       router.replace("/admin/login");
       router.refresh();
@@ -124,7 +125,9 @@ function AdminLogoutButton({
 }
 
 function getPageMeta(pathname: string) {
-  return navigation.find((item) => isActive(pathname, item.href)) ?? navigation[0];
+  return (
+    navigation.find((item) => isActive(pathname, item.href)) ?? navigation[0]
+  );
 }
 
 function AdminSidebar({ pathname }: { pathname: string }) {
@@ -248,7 +251,11 @@ function AdminHeader({ pathname }: { pathname: string }) {
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-8 rounded-full p-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-full p-0"
+            >
               <Avatar className="size-8 bg-bloom-text">
                 <AvatarFallback className="bg-bloom-text text-[11px] font-bold text-bloom-bg">
                   MV
@@ -260,7 +267,9 @@ function AdminHeader({ pathname }: { pathname: string }) {
           <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuLabel>
               <span className="block text-sm text-bloom-text">Mara Voss</span>
-              <span className="block font-normal text-bloom-subtle">Studio Owner</span>
+              <span className="block font-normal text-bloom-subtle">
+                Studio Owner
+              </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

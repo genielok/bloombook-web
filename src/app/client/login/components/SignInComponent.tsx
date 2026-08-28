@@ -9,7 +9,7 @@ import React, { useState } from "react";
 
 export const SignInComponent = () => {
   const router = useRouter();
-  const [email, setEmail] = useState("sofia.l@email.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -18,14 +18,12 @@ export const SignInComponent = () => {
     setIsSubmitting(true);
 
     try {
-      const res = await signIn({
+      const { data } = await signIn({
         email,
         password,
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to sign in");
-      }
+      localStorage.setItem("user", JSON.stringify(data.user));
 
       router.push("/client/account");
       router.refresh();
@@ -42,7 +40,7 @@ export const SignInComponent = () => {
         name="email"
         value={email}
         onChange={setEmail}
-        placeholder="sofia.l@email.com"
+        placeholder="xxx@email.com"
         autoComplete="email"
         required
       />

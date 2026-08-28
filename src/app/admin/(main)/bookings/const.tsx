@@ -1,11 +1,13 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import {
-  adminBookings,
   bookingStatusClass,
+  Staff,
   type AdminBooking,
   type BookingStatus,
 } from "../components/bookings-data";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export const columns: ColumnDef<AdminBooking>[] = [
   {
@@ -14,7 +16,7 @@ export const columns: ColumnDef<AdminBooking>[] = [
     filterFn: "equalsString",
     enableGlobalFilter: false,
     cell: ({ row }) => (
-      <span className="font-semibold">{row.original.dateLabel}</span>
+      <span className="font-semibold">{row.original.date}</span>
     ),
   },
   {
@@ -38,32 +40,6 @@ export const columns: ColumnDef<AdminBooking>[] = [
     ),
   },
   {
-    accessorKey: "serviceName",
-    header: "Service",
-    filterFn: "equalsString",
-    enableGlobalFilter: false,
-    meta: { cellClassName: "text-[#5c5147]" },
-  },
-  {
-    accessorKey: "staffName",
-    header: "Staff",
-    filterFn: "equalsString",
-    enableGlobalFilter: false,
-    meta: { cellClassName: "text-[#5c5147]" },
-  },
-  {
-    accessorKey: "price",
-    header: "Price",
-    enableGlobalFilter: false,
-    meta: {
-      headerClassName: "text-right",
-      cellClassName: "text-right",
-    },
-    cell: ({ row }) => (
-      <span className="font-semibold">€{row.original.price}</span>
-    ),
-  },
-  {
     accessorKey: "status",
     header: "Status",
     filterFn: "equalsString",
@@ -76,27 +52,82 @@ export const columns: ColumnDef<AdminBooking>[] = [
       </Badge>
     ),
   },
+  {
+    accessorKey: "servicesSnapshot",
+    header: "Service",
+    filterFn: "equalsString",
+    enableGlobalFilter: false,
+    meta: { cellClassName: "text-[#5c5147]" },
+    cell: ({ row }) => {
+      return (
+        <div>
+          {row.original.servicesSnapshot.map((item) => item.name).join(",")}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "staffName",
+    header: "Staff",
+    filterFn: "equalsString",
+    enableGlobalFilter: false,
+    meta: { cellClassName: "text-[#5c5147]" },
+    cell: ({ row }) => <div>{row.original.staff?.name || "-"}</div>,
+  },
+  {
+    accessorKey: "totalPrice",
+    header: "Price",
+    enableGlobalFilter: false,
+    meta: {
+      headerClassName: "text-right",
+      cellClassName: "text-right",
+    },
+    cell: ({ row }) => (
+      <span className="font-semibold">€{row.original.totalPrice}</span>
+    ),
+  },
+  {
+    header: "Action",
+    enableGlobalFilter: false,
+    meta: {
+      headerClassName: "text-right",
+      cellClassName: "text-right",
+    },
+    cell: ({ row }) => (
+      <Link href={`/admin/bookings/${row.original.id}`}>Edit</Link>
+    ),
+  },
 ];
 
-export const statuses: Array<BookingStatus | "All"> = [
-  "All",
-  "Pending",
-  "Confirmed",
-  "Completed",
-  "Cancelled",
-  "No-show",
-];
+export type BookingFormValues = {
+  status: BookingStatus;
+  staff?: Staff;
+  date: string;
+  startTime: string;
+  endTime: string;
+  notes: string;
+};
 
-export const staff = [
-  "All",
-  "Unassigned",
-  "Mara Voss",
-  "Lena Hoffmann",
-  "Emma Richter",
-  "Sophia Lindqvist",
-];
+type Option = {
+  value: BookingStatus;
+  label: string;
+};
 
-export const services = [
-  "All",
-  ...Array.from(new Set(adminBookings.map((booking) => booking.serviceName))),
+export const statusOptions: Option[] = [
+  {
+    value: "pending",
+    label: "Pending",
+  },
+  {
+    value: "confirmed",
+    label: "Confirmed",
+  },
+  {
+    value: "completed",
+    label: "Completed",
+  },
+  {
+    value: "cancelled",
+    label: "Cancelled",
+  },
 ];

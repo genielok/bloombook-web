@@ -8,12 +8,10 @@ type RequestOptions = {
 };
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem("accessToken") || "";
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
       ...options?.headers,
     },
   });
@@ -62,12 +60,11 @@ export async function upload<T>(
   formData: FormData,
   options?: RequestOptions,
 ): Promise<T> {
-  const token = localStorage.getItem("accessToken") || "";
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     body: formData,
+    credentials: "include",
     headers: {
-      Authorization: `Bearer ${token}`,
       ...options?.headers,
     },
   });

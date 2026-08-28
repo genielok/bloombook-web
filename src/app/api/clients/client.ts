@@ -63,10 +63,11 @@ export function getMyBookings(
 }
 
 export function signIn(params: { email: string; password: string }) {
-  return post<{ message: string; user: User; ok: boolean }>(
-    "/api/user/login",
-    params,
-  );
+  return post<ApiResponse<RegisterResponse>>("/api/user/login", params);
+}
+
+export function logoutClient() {
+  return post<ApiResponse<null>>("/api/user/logout", undefined);
 }
 
 export function createAccount(params: CreateAccountParams) {

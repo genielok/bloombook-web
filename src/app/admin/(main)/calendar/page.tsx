@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  adminBookings,
   type AdminBooking,
   type BookingStatus,
 } from "../components/bookings-data";
@@ -63,15 +62,15 @@ export default function AdminCalendarPage() {
   );
   const weekLabel = `${weekDays[0].format("ddd D MMM")} – ${weekDays[6].format("ddd D MMM")}`;
 
-  const filteredBookings = useMemo(
-    () =>
-      adminBookings.filter(
-        (booking) =>
-          (staff === "All" || booking.staffName === staff) &&
-          (status === "All" || booking.status === status),
-      ),
-    [staff, status],
-  );
+  // const filteredBookings = useMemo(
+  //   () =>
+  //     adminBookings.filter(
+  //       (booking) =>
+  //         (staff === "All" || booking.staffName === staff) &&
+  //         (status === "All" || booking.status === status),
+  //     ),
+  //   [staff, status],
+  // );
 
   return (
     <div className="mx-auto w-full max-w-[1600px]">
@@ -133,9 +132,10 @@ export default function AdminCalendarPage() {
             const dateKey = date.format("YYYY-MM-DD");
             const isToday = date.isSame(today, "day");
             const isClosed = date.day() === 0;
-            const bookings = filteredBookings
-              .filter((booking) => booking.date === dateKey)
-              .sort((a, b) => a.startTime.localeCompare(b.startTime));
+            const bookings: AdminBooking[] = [];
+            // const bookings = filteredBookings
+            //   .filter((booking) => booking.date === dateKey)
+            //   .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
             return (
               <CalendarDay
@@ -204,7 +204,9 @@ function CalendarDay({
                   {booking.customerName}
                 </span>
                 <span className="truncate text-[11px] font-normal text-bloom-subtle">
-                  {booking.serviceName}
+                  {booking.servicesSnapshot
+                    .map((service) => service.name)
+                    .join(", ")}
                 </span>
               </Link>
             </Button>

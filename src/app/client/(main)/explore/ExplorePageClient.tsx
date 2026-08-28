@@ -73,14 +73,14 @@ export function ExplorePageClient() {
   return (
     <>
       {/* HERO + SEARCH */}
-      <section className="px-16 pt-16 pb-10">
+      <section className="px-16 pt-8 pb-10">
         <p className="text-[13px] tracking-[0.16em] uppercase text-bloom-accent-dark mb-[18px]">
           Find your studio
         </p>
-        <h1 className="font-display font-medium text-[60px] leading-[1.02] tracking-[-0.015em] m-0 max-w-[760px]">
+        <h1 className="font-display font-medium text-[60px] leading-[1.02] tracking-[-0.015em] m-0 max-w-[900px]">
           Book beauty you&apos;ll <em>love</em>, near you.
         </h1>
-        <p className="text-[18px] text-bloom-muted mt-5 max-w-[520px]">
+        <p className="text-[18px] text-bloom-muted mt-5 max-w-[800px]">
           Discover independent nail, hair and beauty studios across Europe — and
           book in seconds.
         </p>

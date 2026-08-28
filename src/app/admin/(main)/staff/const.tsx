@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getStaffInitials, type AdminStaff } from "../components/staff-data";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 
 export function getStaffColumns(
   onToggle: (id: string) => void,
@@ -76,27 +77,7 @@ export function getStaffColumns(
       cell: ({ row }) => {
         const staff = row.original;
 
-        return (
-          <Button
-            type="button"
-            role="switch"
-            aria-checked={staff.active}
-            aria-label={`${staff.active ? "Deactivate" : "Activate"} ${staff.name}`}
-            variant="ghost"
-            onClick={() => onToggle(staff.id)}
-            className={`relative h-5 w-9 rounded-full p-0 ${
-              staff.active
-                ? "bg-[#7bae8a] hover:bg-[#7bae8a]"
-                : "bg-[#e4e4e7] hover:bg-[#e4e4e7]"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-sm transition-transform ${
-                staff.active ? "translate-x-4" : "translate-x-0"
-              }`}
-            />
-          </Button>
-        );
+        return <Switch onClick={() => onToggle(staff.id)}></Switch>;
       },
     },
     {

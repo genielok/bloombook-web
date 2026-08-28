@@ -18,8 +18,8 @@ type CreateAccountErrors = Partial<{
 
 export const CreateAccountComponent = () => {
   const router = useRouter();
-  const [firstName, setFirstName] = useState("Sofia");
-  const [email, setEmail] = useState("sofia.l@email.com");
+  const [firstName, setFirstName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<CreateAccountErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,7 +80,6 @@ export const CreateAccountComponent = () => {
         email: email.trim(),
         password,
       });
-      localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("user", JSON.stringify(data.user));
       router.push("/client/explore");
       router.refresh();

@@ -110,16 +110,41 @@ export enum ECategory {
   barber = "Barber",
 }
 
-export interface IStudio {
-  id: string;
+export type SalonCategory =
+  | "hair"
+  | "nails"
+  | "massage"
+  | "spa"
+  | "barber"
+  | "makeup"
+  | "tanning"
+  | "waxing";
+
+export type BusinessHour = {
+  day: string;
+  isOpen: boolean;
+  startTime: string;
+  endTime: string;
+  dayOfWeek: number;
+};
+
+export interface StudioBasic {
   name: string;
-  rating: string;
-  category: ECategory;
+  rating?: string;
+  category: SalonCategory;
   city: string;
   address: string;
   services?: string[];
   imgUrl: string;
   description: string;
+  capacity: number;
+  slotIntervalMinutes: number;
+  phone: string;
+  email: string;
+  businessHours: BusinessHour[];
+}
+export interface IStudio extends StudioBasic {
+  id: string;
 }
 
 export interface SearchStudioParams {

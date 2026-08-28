@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import dayjs from "dayjs";
 import { Check, Plus } from "lucide-react";
 import Link from "next/link";
@@ -18,21 +18,30 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { adminServices } from "../../components/services-data";
+  AdminService,
+  SERVICE_CATEGORY_LABELS,
+} from "../../components/services-data";
 import {
   adminStaff,
   getStaffInitials,
   type StaffTimeOff,
 } from "../../components/staff-data";
+import { getServiceList } from "@/app/api/admins/admin";
 
 export default function AdminStaffDetailPage() {
   const params = useParams<{ id: string }>();
+  const [adminServices, setAdminServices] = useState<AdminService[]>([]);
+
+  const fetchServices = async () => {
+    try {
+      const { data } = await getServiceList();
+      setAdminServices(data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
   const initialStaff = useMemo(
     () => adminStaff.find((member) => member.id === params.id),
     [params.id],
@@ -52,6 +61,9 @@ export default function AdminStaffDetailPage() {
     );
   };
 
+  useEffect(() => {
+    fetchServices();
+  }, []);
   return (
     <div className="mx-auto w-full max-w-[1440px]">
       <Link
@@ -154,8 +166,8 @@ export default function AdminStaffDetailPage() {
                       {service.name}
                     </span>
                     <span className="block text-xs text-bloom-subtle">
-                      {service.category} · {service.duration} min · €
-                      {service.price}
+                      {SERVICE_CATEGORY_LABELS[service.serviceCategory]} ·{" "}
+                      {service.durationMinutes} min · €{service.price}
                     </span>
                   </span>
                   <span
@@ -246,11 +258,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function AddTimeOffDialog({
-  onAdd,
-}: {
-  onAdd: (item: StaffTimeOff) => void;
-}) {
+function AddTimeOffDialog({ onAdd }: { onAdd: (item: StaffTimeOff) => void }) {
   const [open, setOpen] = useState(false);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -305,7 +313,11 @@ function AddTimeOffDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" className="bg-bloom-text text-bloom-bg">

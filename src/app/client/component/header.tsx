@@ -15,11 +15,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BadgeCheckIcon, LogOutIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/app/lib/http";
 import { getAssetUrl } from "@/lib/func";
 import {
   notifyStoredUserChanged,
   useStoredUser,
 } from "@/hooks/use-stored-user";
+import { logoutClient } from "@/app/api/clients/client";
 
 export function HeaderComponent(props: { children?: ReactNode }) {
   const user = useStoredUser();
@@ -27,6 +29,7 @@ export function HeaderComponent(props: { children?: ReactNode }) {
 
   const handleSignout = async () => {
     try {
+      await logoutClient();
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
       notifyStoredUserChanged();

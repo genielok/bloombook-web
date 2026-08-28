@@ -17,6 +17,7 @@ type FilterSelectProps = {
   required?: boolean;
   placeholder?: string;
   className?: string;
+  getItemLabel?: (item: string) => string;
 };
 
 export function FilterSelect({
@@ -29,6 +30,7 @@ export function FilterSelect({
   required,
   placeholder,
   className,
+  getItemLabel,
 }: FilterSelectProps) {
   return (
     <Select
@@ -50,7 +52,7 @@ export function FilterSelect({
       <SelectContent>
         {items.map((item) => (
           <SelectItem key={item} value={item}>
-            {item === "All" ? label : item}
+            {item === "All" ? label : (getItemLabel?.(item) ?? item)}
           </SelectItem>
         ))}
       </SelectContent>

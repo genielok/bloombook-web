@@ -1,5 +1,3 @@
-import { adminServices } from "./services-data";
-
 export type StaffHours = {
   day: string;
   isWorking: boolean;
@@ -50,8 +48,11 @@ function hours(
     isWorking: workingDays.includes(index),
     start: workingDays.includes(index) ? start : "",
     end:
-      workingDays.includes(index) && index === 5 ? saturdayEnd :
-      workingDays.includes(index) ? end : "",
+      workingDays.includes(index) && index === 5
+        ? saturdayEnd
+        : workingDays.includes(index)
+          ? end
+          : "",
   }));
 }
 
@@ -93,9 +94,7 @@ export const adminStaff: AdminStaff[] = [
     avatarBg: "#EFE0D0",
     serviceIds: ["acrylic", "nail-art", "spa-pedi"],
     hours: hours([0, 2, 3, 4, 5], "09:00", "17:00", "15:00"),
-    timeOff: [
-      { id: "to1", date: "2026-07-25", reason: "Personal day" },
-    ],
+    timeOff: [{ id: "to1", date: "2026-07-25", reason: "Personal day" }],
   },
   {
     id: "st4",
@@ -127,11 +126,4 @@ export function getStaffInitials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-}
-
-export function getStaffServiceNames(staff: AdminStaff) {
-  return staff.serviceIds
-    .map((id) => adminServices.find((service) => service.id === id)?.name)
-    .filter(Boolean)
-    .join(", ");
 }

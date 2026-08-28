@@ -10,13 +10,14 @@ import {
   useReactTable,
   type ColumnDef,
   type ColumnFiltersState,
+  type PaginationState,
   type Row,
   type SortingState,
   type Table as TanStackTable,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/Pagination";
 import {
   Table,
   TableBody,
@@ -44,6 +45,13 @@ type DataTableProps<TData, TValue> = {
   emptyMessage?: string;
   pageSize?: number;
   showPagination?: boolean;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    onPageChange: (page: number) => void;
+    disabled?: boolean;
+  };
   className?: string;
   tableClassName?: string;
 };
@@ -56,6 +64,7 @@ export function DataTable<TData, TValue>({
   emptyMessage = "No results.",
   pageSize = 10,
   showPagination = true,
+  pagination: controlledPagination,
   className,
   tableClassName,
 }: DataTableProps<TData, TValue>) {
@@ -63,10 +72,17 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
-  const [pagination, setPagination] = React.useState({
+  const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize,
   });
+  const isServerPagination = Boolean(controlledPagination);
+  const activePagination: PaginationState = controlledPagination
+    ? {
+        pageIndex: Math.max(0, controlledPagination.page - 1),
+        pageSize: controlledPagination.pageSize,
+      }
+    : pagination;
 
   // TanStack Table returns callback APIs that React Compiler intentionally skips.
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -77,25 +93,29 @@ export function DataTable<TData, TValue>({
       sorting,
       columnFilters,
       globalFilter,
-      pagination,
+      pagination: activePagination,
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-    onPaginationChange: setPagination,
+    onPaginationChange: isServerPagination ? undefined : setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: showPagination
+    getPaginationRowModel: showPagination && !isServerPagination
       ? getPaginationRowModel()
+      : undefined,
+    manualPagination: isServerPagination,
+    pageCount: controlledPagination
+      ? Math.max(
+          1,
+          Math.ceil(controlledPagination.total / controlledPagination.pageSize),
+        )
       : undefined,
   });
 
   const filteredCount = table.getFilteredRowModel().rows.length;
   const { pageIndex, pageSize: activePageSize } = table.getState().pagination;
-  const rangeStart = filteredCount ? pageIndex * activePageSize + 1 : 0;
-  const rangeEnd = Math.min((pageIndex + 1) * activePageSize, filteredCount);
-  const totalPages = Math.max(1, table.getPageCount());
 
   const openRow = (row: Row<TData>) => onRowClick?.(row);
 
@@ -216,34 +236,20 @@ export function DataTable<TData, TValue>({
         </Table>
 
         {showPagination && (
-          <div className="flex flex-col gap-3 border-t border-[#f0e9e1] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-xs text-bloom-subtle">
-              Showing {rangeStart}–{rangeEnd} of {filteredCount}
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!table.getCanPreviousPage()}
-                onClick={() => table.previousPage()}
-                className="border-bloom-border bg-white text-xs shadow-none"
-              >
-                Prev
-              </Button>
-              <span className="text-xs text-bloom-subtle">
-                Page {pageIndex + 1} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!table.getCanNextPage()}
-                onClick={() => table.nextPage()}
-                className="border-bloom-border bg-white text-xs shadow-none"
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          <Pagination
+            page={pageIndex + 1}
+            pageSize={activePageSize}
+            total={controlledPagination?.total ?? filteredCount}
+            onPageChange={(page) => {
+              if (controlledPagination) {
+                controlledPagination.onPageChange(page);
+                return;
+              }
+              table.setPageIndex(page - 1);
+            }}
+            disabled={controlledPagination?.disabled}
+            className="border-t border-[#f0e9e1] px-5 py-3.5"
+          />
         )}
       </div>
     </div>

@@ -1,12 +1,16 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { AdminService } from "../components/services-data";
+import {
+  SERVICE_CATEGORY_LABELS,
+  type AdminService,
+} from "../components/services-data";
+import { Switch } from "@/components/ui/switch";
 
 export function getServiceColumns(
   onToggle: (id: string) => void,
+  onEdit: (service: AdminService) => void,
 ): ColumnDef<AdminService>[] {
   return [
     {
@@ -20,7 +24,7 @@ export function getServiceColumns(
       filterFn: "equalsString",
       cell: ({ row }) => (
         <Badge className="border-0 bg-[#f4f1ec] px-2.5 text-[11px] font-semibold text-[#5c5147]">
-          {row.original.category}
+          {SERVICE_CATEGORY_LABELS[row.original.serviceCategory]}
         </Badge>
       ),
     },
@@ -31,7 +35,7 @@ export function getServiceColumns(
         headerClassName: "text-right",
         cellClassName: "text-right text-[#5c5147]",
       },
-      cell: ({ row }) => `${row.original.duration} min`,
+      cell: ({ row }) => `${row.original.durationMinutes} min`,
     },
     {
       accessorKey: "price",
@@ -41,28 +45,6 @@ export function getServiceColumns(
         cellClassName: "text-right font-semibold",
       },
       cell: ({ row }) => `€${row.original.price}`,
-    },
-    {
-      accessorKey: "staffCount",
-      header: "Staff",
-      meta: {
-        headerClassName: "text-right",
-        cellClassName: "text-right text-[#5c5147]",
-      },
-    },
-    {
-      id: "status",
-      accessorFn: (service) => (service.active ? "Active" : "Inactive"),
-      header: "Status",
-      cell: ({ row }) => (
-        <span
-          className={`text-xs font-semibold ${
-            row.original.active ? "text-[#3f7350]" : "text-bloom-subtle"
-          }`}
-        >
-          {row.original.active ? "Active" : "Inactive"}
-        </span>
-      ),
     },
     {
       id: "active",
@@ -76,25 +58,10 @@ export function getServiceColumns(
         const service = row.original;
 
         return (
-          <Button
-            type="button"
-            role="switch"
-            aria-checked={service.active}
-            aria-label={`${service.active ? "Deactivate" : "Activate"} ${service.name}`}
-            variant="ghost"
+          <Switch
+            checked={service.active}
             onClick={() => onToggle(service.id)}
-            className={`relative h-5 w-9 rounded-full p-0 ${
-              service.active
-                ? "bg-[#7bae8a] hover:bg-[#7bae8a]"
-                : "bg-[#e4e4e7] hover:bg-[#e4e4e7]"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-sm transition-transform ${
-                service.active ? "translate-x-4" : "translate-x-0"
-              }`}
-            />
-          </Button>
+          ></Switch>
         );
       },
     },
@@ -108,13 +75,12 @@ export function getServiceColumns(
       },
       cell: ({ row }) => (
         <Button
-          asChild
+          type="button"
           variant="link"
+          onClick={() => onEdit(row.original)}
           className="h-auto px-0 text-xs font-semibold text-bloom-accent-dark"
         >
-          <Link href={`/admin/services/new?service=${row.original.id}`}>
-            Edit
-          </Link>
+          Edit
         </Button>
       ),
     },

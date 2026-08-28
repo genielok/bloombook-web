@@ -1,238 +1,221 @@
 "use client";
 
-import { useState, type FormEventHandler } from "react";
+import {
+  Controller,
+  FormProvider,
+  useForm,
+  type SubmitHandler,
+} from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { AdminFormField, AdminInput } from "../../components/admin-form";
 import { FilterSelect } from "../../components/filterSelect";
-import { BusinessHour, CategoryArray, initialBusinessHours } from "../const";
-import { SettingsSaveButton } from "./settings-ui";
+import { CategoryArray, initialBusinessHours } from "../const";
+import type { StudioBasic } from "@/app/api/clients/types";
+import type { StudioSettings } from "@/app/api/admins/admin";
+import { BusinessHourSettingsForm } from "./businessHour-settings-form";
+import { BookingSettingsForm } from "./booking-settings-form";
 
-export function StudioSettingsForm() {
-  const [businessHours, setBusinessHours] =
-    useState<BusinessHour[]>(initialBusinessHours);
-  const [studioCategory, setStudioCategory] = useState<string>(
-    CategoryArray[0],
-  );
-  const [saved, setSaved] = useState(false);
+export function StudioSettingsForm({
+  studioInfo,
+  onSave,
+}: {
+  studioInfo: StudioBasic;
+  onSave: (values: StudioSettings) => Promise<void>;
+}) {
+  const methods = useForm<StudioSettings>({
+    values: {
+      name: studioInfo.name,
+      category: studioInfo.category,
+      city: studioInfo.city,
+      address: studioInfo.address,
+      phone: studioInfo.phone,
+      email: studioInfo.email,
+      description: studioInfo.description,
+      imgUrl: studioInfo.imgUrl,
+      capacity: studioInfo.capacity,
+      slotIntervalMinutes: studioInfo.slotIntervalMinutes,
+      businessHours: studioInfo.businessHours ?? initialBusinessHours,
+    },
+  });
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = methods;
 
-  const submit: FormEventHandler<HTMLFormElement> = (event) => {
-    event.preventDefault();
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
-  };
-
-  const updateHours = (
-    index: number,
-    field: "isOpen" | "open" | "close",
-    value: boolean | string,
-  ) => {
-    setBusinessHours((current) =>
-      current.map((hours, itemIndex) =>
-        itemIndex === index ? { ...hours, [field]: value } : hours,
-      ),
-    );
-    setSaved(false);
+  const submit: SubmitHandler<StudioSettings> = async (data) => {
+    try {
+      await onSave(data);
+    } catch (error) {
+      console.log("Error updating studio settings:", error);
+    }
   };
 
   return (
-    <form
-      onSubmit={submit}
-      className="rounded-[10px] border border-bloom-border bg-white px-[26px] py-6"
-    >
-      <div className="flex flex-col gap-4">
-        <div className="grid gap-3.5 sm:grid-cols-2">
-          <AdminFormField label="Studio name" htmlFor="studio-name" required>
-            <AdminInput
-              id="studio-name"
-              name="studioName"
-              defaultValue="Petal Studio"
-              required
-            />
-          </AdminFormField>
-
-          <AdminFormField label="Category" htmlFor="studio-category" required>
-            <FilterSelect
-              id="studio-category"
-              name="category"
-              required
-              label="Select category"
-              value={studioCategory}
-              items={CategoryArray}
-              onChange={setStudioCategory}
-              className="w-full"
-            />
-          </AdminFormField>
-        </div>
-
-        <div className="grid gap-3.5 sm:grid-cols-[2fr_1fr]">
-          <AdminFormField label="City" htmlFor="studio-city" required>
-            <AdminInput
-              id="studio-city"
-              name="city"
-              required
-              defaultValue="Berlin"
-            />
-          </AdminFormField>
-          <AdminFormField label="Address" htmlFor="studio-address" required>
-            <AdminInput
-              id="studio-address"
-              name="address"
-              required
-              defaultValue="Torstraße 114"
-            />
-          </AdminFormField>
-        </div>
-
-        <div className="grid gap-3.5 sm:grid-cols-2">
-          <AdminFormField label="Phone" htmlFor="studio-phone" required>
-            <AdminInput
-              id="studio-phone"
-              name="phone"
-              type="tel"
-              defaultValue="+49 30 5551 2290"
-              required
-            />
-          </AdminFormField>
-          <AdminFormField label="Email" htmlFor="studio-email" required>
-            <AdminInput
-              id="studio-email"
-              name="email"
-              type="email"
-              defaultValue="hello@petalstudio.com"
-              required
-            />
-          </AdminFormField>
-        </div>
-
-        <div className="grid gap-3.5 sm:grid-cols-2">
-          <AdminFormField
-            label="Simultaneous booking capacity"
-            htmlFor="studio-capacity"
-            required
-          >
-            <AdminInput
-              id="studio-capacity"
-              name="capacity"
-              type="number"
-              min={1}
-              step={1}
-              defaultValue={1}
-              required
-            />
-          </AdminFormField>
-          <AdminFormField
-            label="Slot interval (minutes)"
-            htmlFor="studio-slot-interval"
-            required
-          >
-            <AdminInput
-              id="studio-slot-interval"
-              name="slot_interval_minutes"
-              type="number"
-              min={10}
-              step={5}
-              defaultValue={30}
-              required
-            />
-          </AdminFormField>
-        </div>
-
-        <AdminFormField label="Description" htmlFor="studio-description">
-          <Textarea
-            id="studio-description"
-            name="description"
-            defaultValue="An intimate nail and beauty studio in Mitte specializing in gel manicures, spa pedicures and lash treatments."
-            className="min-h-20 resize-y border-bloom-border bg-white text-sm shadow-none focus-visible:border-bloom-accent focus-visible:ring-bloom-accent/20"
-          />
-        </AdminFormField>
-
-        <div className="border-t border-bloom-border pt-5">
+    <>
+      <FormProvider {...methods}>
+        <form
+          onSubmit={handleSubmit(submit)}
+          className="rounded-[10px] border border-bloom-border bg-white px-[26px] py-6"
+        >
+        <div>
           <h2 className="text-sm font-semibold text-bloom-text">
-            Business hours
+            Studio information
           </h2>
           <p className="mt-1 text-xs text-bloom-subtle">
-            Set when customers can book appointments.
+            Details customers see when they visit your studio page.
           </p>
         </div>
 
-        <div>
-          {businessHours?.map((hours, index) => (
-            <div
-              key={hours.day}
-              className="flex min-h-[54px] flex-wrap items-center gap-3 border-b border-[#f5efe8] py-2 last:border-0 sm:flex-nowrap sm:gap-3.5"
-            >
-              <input
-                type="hidden"
-                name={`business_hours.${index}.day`}
-                value={hours.day}
+        <div className="mt-5 flex flex-col gap-4">
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <AdminFormField label="Studio name" htmlFor="studio-name" required>
+              <AdminInput
+                id="studio-name"
+                {...register("name", {
+                  required: "Studio name is required",
+                  minLength: {
+                    value: 2,
+                    message: "Studio name must be at least 2 characters",
+                  },
+                })}
+                aria-invalid={Boolean(errors.name)}
               />
-              <input
-                type="hidden"
-                name={`business_hours.${index}.is_open`}
-                value={String(hours.isOpen)}
-              />
-              <span className="w-[90px] shrink-0 text-[13px] font-semibold">
-                {hours.day}
-              </span>
-              <Button
-                type="button"
-                role="switch"
-                aria-checked={hours.isOpen}
-                aria-label={`${hours.isOpen ? "Close" : "Open"} ${hours.day}`}
-                variant="ghost"
-                onClick={() => updateHours(index, "isOpen", !hours.isOpen)}
-                className={`relative h-5 w-9 shrink-0 rounded-full p-0 ${
-                  hours.isOpen
-                    ? "bg-[#7bae8a] hover:bg-[#7bae8a]"
-                    : "bg-[#e4e4e7] hover:bg-[#e4e4e7]"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-sm transition-transform ${
-                    hours.isOpen ? "translate-x-4" : "translate-x-0"
-                  }`}
-                />
-              </Button>
-
-              {hours.isOpen ? (
-                <div className="flex items-center gap-2">
-                  <AdminInput
-                    compact
-                    type="time"
-                    name={`business_hours.${index}.open`}
-                    aria-label={`${hours.day} opening time`}
-                    value={hours.startTime}
-                    onChange={(event) =>
-                      updateHours(index, "open", event.target.value)
-                    }
-                    className="h-8 w-[112px] px-2.5"
-                  />
-                  <span className="text-[13px] text-bloom-subtle">–</span>
-                  <AdminInput
-                    compact
-                    type="time"
-                    name={`business_hours.${index}.close`}
-                    aria-label={`${hours.day} closing time`}
-                    value={hours.endTime}
-                    onChange={(event) =>
-                      updateHours(index, "close", event.target.value)
-                    }
-                    className="h-8 w-[112px] px-2.5"
-                  />
-                </div>
-              ) : (
-                <span className="text-[13px] text-bloom-subtle">Closed</span>
+              {errors.name && (
+                <p role="alert" className="text-sm text-red-500">
+                  {errors.name.message}
+                </p>
               )}
-            </div>
-          ))}
+            </AdminFormField>
+
+            <AdminFormField label="Category" htmlFor="studio-category" required>
+              <Controller
+                name="category"
+                control={control}
+                rules={{ required: "Category is required" }}
+                render={({ field }) => (
+                  <FilterSelect
+                    id="studio-category"
+                    name={field.name}
+                    required
+                    label="Select category"
+                    value={field.value}
+                    items={CategoryArray}
+                    onChange={field.onChange}
+                    getItemLabel={(value) =>
+                      value.charAt(0).toUpperCase() + value.slice(1)
+                    }
+                    className="h-10 w-full"
+                  />
+                )}
+              />
+              {errors.category && (
+                <p role="alert" className="text-sm text-red-500">
+                  {errors.category.message}
+                </p>
+              )}
+            </AdminFormField>
+          </div>
+
+          <div className="grid gap-3.5 sm:grid-cols-[1fr_2fr]">
+            <AdminFormField label="City" htmlFor="studio-city" required>
+              <AdminInput
+                id="studio-city"
+                {...register("city", { required: "City is required" })}
+                aria-invalid={Boolean(errors.city)}
+              />
+              {errors.city && (
+                <p role="alert" className="text-sm text-red-500">
+                  {errors.city.message}
+                </p>
+              )}
+            </AdminFormField>
+
+            <AdminFormField label="Address" htmlFor="studio-address" required>
+              <AdminInput
+                id="studio-address"
+                {...register("address", { required: "Address is required" })}
+                aria-invalid={Boolean(errors.address)}
+              />
+              {errors.address && (
+                <p role="alert" className="text-sm text-red-500">
+                  {errors.address.message}
+                </p>
+              )}
+            </AdminFormField>
+          </div>
+
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <AdminFormField label="Phone" htmlFor="studio-phone" required>
+              <AdminInput
+                id="studio-phone"
+                type="tel"
+                {...register("phone", { required: "Phone is required" })}
+                aria-invalid={Boolean(errors.phone)}
+              />
+              {errors.phone && (
+                <p role="alert" className="text-sm text-red-500">
+                  {errors.phone.message}
+                </p>
+              )}
+            </AdminFormField>
+
+            <AdminFormField label="Email" htmlFor="studio-email" required>
+              <AdminInput
+                id="studio-email"
+                type="email"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    message: "Enter a valid email address",
+                  },
+                })}
+                aria-invalid={Boolean(errors.email)}
+              />
+              {errors.email && (
+                <p role="alert" className="text-sm text-red-500">
+                  {errors.email.message}
+                </p>
+              )}
+            </AdminFormField>
+          </div>
+
+          <AdminFormField label="Description" htmlFor="studio-description">
+            <Textarea
+              id="studio-description"
+              {...register("description", {
+                maxLength: {
+                  value: 500,
+                  message: "Description cannot exceed 500 characters",
+                },
+              })}
+              aria-invalid={Boolean(errors.description)}
+              className="min-h-20 resize-y border-bloom-border bg-white text-sm shadow-none focus-visible:border-bloom-accent focus-visible:ring-bloom-accent/20"
+            />
+            {errors.description && (
+              <p role="alert" className="text-sm text-red-500">
+                {errors.description.message}
+              </p>
+            )}
+          </AdminFormField>
         </div>
 
-        <div className="pt-1">
-          <SettingsSaveButton saved={saved}>Save changes</SettingsSaveButton>
+        <BusinessHourSettingsForm />
+        <BookingSettingsForm />
+
+        <div className="mt-6">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Spinner data-icon="inline-start" />}
+            {isSubmitting ? "Saving..." : "Save studio settings"}
+          </Button>
         </div>
-      </div>
-    </form>
+        </form>
+      </FormProvider>
+    </>
   );
 }
