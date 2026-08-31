@@ -1,4 +1,6 @@
 "use client";
+
+import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   CalendarDays,
@@ -18,7 +20,12 @@ import {
   Rectangle,
   XAxis,
 } from "recharts";
+import dayjs from "dayjs";
 
+import {
+  type AdminDashboardData,
+  getAdminDashboard,
+} from "@/app/api/admins/admin";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,99 +36,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import dayjs from "dayjs";
 import {
-  ChartConfig,
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { bookingStatusClass, bookingStatusLabels } from "./bookings/constants";
 
-type BookingStatus = "Pending" | "Confirmed" | "Completed";
-
-type Booking = {
-  id: string;
-  startTime: string;
-  customerName: string;
-  serviceName: string;
-  staffName: string;
-  status: BookingStatus;
-  avatarClassName: string;
+const EMPTY_DASHBOARD: AdminDashboardData = {
+  revenueThisMonth: 0,
+  revenueLast7Days: [],
+  todayBookingsCount: 0,
+  upcomingBookingsCount: 0,
+  completedThisMonthCount: 0,
+  todayBookings: [],
 };
 
-const metrics = [
-  {
-    label: "Today's bookings",
-    value: "3",
-    icon: ClipboardCheck,
-    iconClassName: "bg-[#f4ebe2] text-[#a96c32]",
-  },
-  {
-    label: "Upcoming bookings",
-    value: "31",
-    icon: CalendarDays,
-    iconClassName: "bg-[#e7eef5] text-[#3d6b94]",
-  },
-  {
-    label: "Completed this month",
-    value: "23",
-    icon: Check,
-    iconClassName: "bg-[#e6f0e8] text-[#3f7350]",
-  },
-];
-
-const chartData = Array.from({ length: 7 }, (_, index) => {
-  const date = dayjs().subtract(6 - index, "day");
-
-  return {
-    date: date.format("YYYY-MM-DD"),
-    weekday: date.format("ddd"),
-    desktop: [36, 15, 57, 46, 33, 5, 5][index],
-  };
-});
-
 const chartConfig = {
-  desktop: {
-    label: "Desktop",
+  amount: {
+    label: "Revenue",
     color: "#d9a477",
   },
 } satisfies ChartConfig;
 
-const todaysBookings: Booking[] = [
-  {
-    id: "bk37",
-    startTime: "09:30",
-    customerName: "Nils Haas",
-    serviceName: "Classic Manicure",
-    staffName: "Lena Hoffmann",
-    status: "Confirmed",
-    avatarClassName: "bg-[#f4ebe2]",
-  },
-  {
-    id: "bk38",
-    startTime: "12:00",
-    customerName: "Adam Kowalski",
-    serviceName: "Lash Lift & Tint",
-    staffName: "Sophia Lindqvist",
-    status: "Confirmed",
-    avatarClassName: "bg-[#e6f0e8]",
-  },
-  {
-    id: "bk39",
-    startTime: "15:30",
-    customerName: "Erik García",
-    serviceName: "Acrylic Full Set",
-    staffName: "Emma Richter",
-    status: "Confirmed",
-    avatarClassName: "bg-[#efe0d0]",
-  },
-];
-
-const statusStyles: Record<BookingStatus, string> = {
-  Pending: "bg-[#fdf3e7] text-[#a06b3d]",
-  Confirmed: "bg-[#e7eef5] text-[#3d6b94]",
-  Completed: "bg-[#e6f0e8] text-[#3f7350]",
-};
+const currencyFormatter = new Intl.NumberFormat("de-DE", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
 
 const quickActions: Array<{
   label: string;
@@ -130,8 +73,8 @@ const quickActions: Array<{
   iconClassName: string;
 }> = [
   {
-    label: "Create service",
-    href: "/admin/services/new",
+    label: "Service Management",
+    href: "/admin/services",
     icon: Tags,
     iconClassName: "bg-[#f4ebe2] text-[#a96c32]",
   },
@@ -155,14 +98,14 @@ const quickActions: Array<{
   },
 ];
 
-const dashboardDate = dayjs(new Date());
-
 function getInitials(name: string) {
   return name
     .split(" ")
+    .filter(Boolean)
     .map((part) => part[0])
     .slice(0, 2)
-    .join("");
+    .join("")
+    .toUpperCase();
 }
 
 function CustomBar({ x, y, width, height, payload }: BarShapeProps) {
@@ -181,21 +124,87 @@ function CustomBar({ x, y, width, height, payload }: BarShapeProps) {
 }
 
 export default function AdminDashboardPage() {
+  const [dashboard, setDashboard] =
+    useState<AdminDashboardData>(EMPTY_DASHBOARD);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void getAdminDashboard()
+      .then(({ data }) => {
+        if (!cancelled) setDashboard(data);
+      })
+      .catch((loadError) => {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load dashboard.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const metrics = [
+    {
+      label: "Today's bookings",
+      value: dashboard.todayBookingsCount,
+      icon: ClipboardCheck,
+      iconClassName: "bg-[#f4ebe2] text-[#a96c32]",
+    },
+    {
+      label: "Upcoming bookings",
+      value: dashboard.upcomingBookingsCount,
+      icon: CalendarDays,
+      iconClassName: "bg-[#e7eef5] text-[#3d6b94]",
+    },
+    {
+      label: "Completed this month",
+      value: dashboard.completedThisMonthCount,
+      icon: Check,
+      iconClassName: "bg-[#e6f0e8] text-[#3f7350]",
+    },
+  ];
+  const chartData = dashboard.revenueLast7Days.map((day) => ({
+    ...day,
+    weekday: dayjs(day.date).format("ddd"),
+  }));
+
   return (
     <div className="w-full">
+      {error && (
+        <div
+          role="alert"
+          className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {error}
+        </div>
+      )}
+
       <section
         aria-label="Booking overview"
         className="grid grid-cols-1 gap-5 sm:grid-cols-3 xl:grid-cols-[2fr_repeat(3,minmax(0,1fr))]"
       >
-        <Card className="h-[220px]  gap-0 rounded-[20px] border-0 bg-[#211e1a] py-0 text-white shadow-none ring-0 sm:col-span-3 xl:col-span-1">
+        <Card className="h-[220px] gap-0 rounded-[20px] border-0 bg-[#211e1a] py-0 text-white shadow-none ring-0 sm:col-span-3 xl:col-span-1">
           <CardContent className="flex h-full flex-col px-7 pt-4 pb-1">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[15px] tracking-[0.03em] text-[#c8b6a5]">
-                  Revenue
+                  Revenue this month
                 </p>
                 <p className="mt-3 font-display text-[42px] leading-none tracking-[-0.035em]">
-                  €1,093
+                  {isLoading
+                    ? "—"
+                    : currencyFormatter.format(dashboard.revenueThisMonth)}
                 </p>
               </div>
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#483a2c] text-[#e8c39f]">
@@ -208,22 +217,18 @@ export default function AdminDashboardPage() {
             >
               <BarChart accessibilityLayer data={chartData}>
                 <CartesianGrid vertical={false} />
-
                 <XAxis
                   dataKey="weekday"
                   tickLine={false}
                   tickMargin={10}
                   axisLine={false}
-                  tickFormatter={(value) => value.slice(0, 3)}
                 />
-
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent hideLabel />}
                 />
-
                 <Bar
-                  dataKey="desktop"
+                  dataKey="amount"
                   shape={(props: BarShapeProps) => <CustomBar {...props} />}
                 />
               </BarChart>
@@ -244,7 +249,7 @@ export default function AdminDashboardPage() {
               </span>
               <p className="mt-4 text-[15px] text-[#8c8175]">{metric.label}</p>
               <p className="mt-3 font-display text-[38px] leading-none tracking-[-0.03em] text-bloom-text">
-                {metric.value}
+                {isLoading ? "—" : metric.value}
               </p>
             </CardContent>
           </Card>
@@ -258,32 +263,32 @@ export default function AdminDashboardPage() {
               Today&apos;s bookings
             </CardTitle>
             <CardDescription className="text-sm text-[#8c8175]">
-              {dashboardDate.format("dddd, DD MMM YYYY")}
+              {dayjs().format("dddd, DD MMM YYYY")}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="px-0">
-            {todaysBookings.length === 0 ? (
+            {isLoading ? (
+              <div className="px-6 py-10 text-center text-[13px] text-bloom-subtle">
+                Loading bookings…
+              </div>
+            ) : dashboard.todayBookings.length === 0 ? (
               <div className="px-6 py-10 text-center text-[13px] text-bloom-subtle">
                 No bookings today.
               </div>
             ) : (
               <div>
-                {todaysBookings.map((booking) => (
+                {dashboard.todayBookings.map((booking) => (
                   <Link
                     key={booking.id}
                     href={`/admin/bookings/${booking.id}`}
                     className="flex min-h-[88px] items-center gap-5 border-t border-[#eee5dc] px-8 py-4 transition-colors first:border-t-0 hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-bloom-accent"
                   >
                     <time className="w-[72px] shrink-0 text-sm font-semibold text-bloom-text">
-                      {booking.startTime}
+                      {booking.startTime.slice(0, 5)}
                     </time>
-                    <Avatar
-                      className={`size-12 border-0 after:border-0 ${booking.avatarClassName}`}
-                    >
-                      <AvatarFallback
-                        className={`text-xs font-semibold text-bloom-text ${booking.avatarClassName}`}
-                      >
+                    <Avatar className="size-12 border-0 bg-[#f4ebe2] after:border-0">
+                      <AvatarFallback className="bg-[#f4ebe2] text-xs font-semibold text-bloom-text">
                         {getInitials(booking.customerName)}
                       </AvatarFallback>
                     </Avatar>
@@ -292,13 +297,16 @@ export default function AdminDashboardPage() {
                         {booking.customerName}
                       </p>
                       <p className="mt-0.5 truncate text-sm text-[#8c8175]">
-                        {booking.serviceName} · {booking.staffName}
+                        {booking.servicesSnapshot
+                          .map((service) => service.name)
+                          .join(", ")}{" "}
+                        · {booking.staff?.name ?? "Unassigned"}
                       </p>
                     </div>
                     <Badge
-                      className={`h-7 border-0 px-3 text-xs font-semibold ${statusStyles[booking.status]}`}
+                      className={`h-7 border-0 px-3 text-xs font-semibold ${bookingStatusClass[booking.status]}`}
                     >
-                      {booking.status}
+                      {bookingStatusLabels[booking.status]}
                     </Badge>
                   </Link>
                 ))}

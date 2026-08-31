@@ -7,7 +7,11 @@ import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { type AdminBooking } from "../components/bookings-data";
-import { columns, statusOptions } from "./const";
+import { columns } from "./const";
+import {
+  bookingStatusFilterOptions,
+  bookingStatusLabels,
+} from "./constants";
 import { FilterSelect } from "../components/filterSelect";
 import { getBookingList } from "@/app/api/admins/admin";
 import { useTable } from "@/hooks/use-table";
@@ -99,8 +103,11 @@ function BookingsFilters({
             (table.getColumn("status")?.getFilterValue() as string) ?? "All"
           }
           label="All statuses"
-          items={statusOptions.map((item) => item.value)}
+          items={bookingStatusFilterOptions}
           onChange={(value) => handleSearch("status", value)}
+          getItemLabel={(item) =>
+            bookingStatusLabels[item as keyof typeof bookingStatusLabels]
+          }
         />
         {/* <FilterSelect
           value={

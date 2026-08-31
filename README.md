@@ -16,7 +16,7 @@ This repository is the **frontend**, built with Next.js. It talks to a separate 
 - Sidebar dashboard shell (calendar, bookings, services, staff, settings) built on `shadcn/ui`
 - Bookings list and detail view with status handling (confirmed / pending / cancelled)
 - Calendar view of scheduled appointments
-- Staff management (list, add, edit)
+- Basic staff management (list, add, edit, delete)
 - Service catalog management (create/edit services with category, price, duration)
 - Studio settings: account info, business hours, booking policy/rules
 - Admin authentication (login/register) separate from client auth
@@ -67,3 +67,20 @@ npm run lint        # eslint
 npm run check       # typecheck + lint
 npm run build        # production build
 ```
+
+## Staff API contract
+
+The basic staff UI expects authenticated JSON endpoints under the admin API:
+
+| Method | Endpoint | Request body | Response `data` |
+| --- | --- | --- | --- |
+| `GET` | `/api/admin/staff` | — | `Staff[]` |
+| `POST` | `/api/admin/staff/create` | `StaffInput` | `Staff` |
+| `POST` | `/api/admin/staff/edit` | `{ id, ...StaffInput }` | `Staff` |
+| `POST` | `/api/admin/staff/delete` | `{ id }` | `null` |
+
+`StaffInput` contains `name`, `email`, `phone`, `role`, and `bio` as strings.
+`Staff` adds an `id` string. Responses use the shared
+`{ code, message, data, total }` envelope. The backend should scope every
+operation to the authenticated admin's studio; deletion may be implemented as
+a soft delete when booking history references the staff member.

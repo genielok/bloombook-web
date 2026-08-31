@@ -1,13 +1,11 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import {
-  bookingStatusClass,
-  Staff,
   type AdminBooking,
   type BookingStatus,
 } from "../components/bookings-data";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { bookingStatusClass, bookingStatusLabels } from "./constants";
 
 export const columns: ColumnDef<AdminBooking>[] = [
   {
@@ -48,7 +46,7 @@ export const columns: ColumnDef<AdminBooking>[] = [
       <Badge
         className={`h-[22px] border-0 px-2.5 text-[11px] font-semibold ${bookingStatusClass[row.original.status]}`}
       >
-        {row.original.status}
+        {bookingStatusLabels[row.original.status]}
       </Badge>
     ),
   },
@@ -101,33 +99,9 @@ export const columns: ColumnDef<AdminBooking>[] = [
 
 export type BookingFormValues = {
   status: BookingStatus;
-  staff?: Staff;
+  staffId: string;
   date: string;
   startTime: string;
   endTime: string;
   notes: string;
 };
-
-type Option = {
-  value: BookingStatus;
-  label: string;
-};
-
-export const statusOptions: Option[] = [
-  {
-    value: "pending",
-    label: "Pending",
-  },
-  {
-    value: "confirmed",
-    label: "Confirmed",
-  },
-  {
-    value: "completed",
-    label: "Completed",
-  },
-  {
-    value: "cancelled",
-    label: "Cancelled",
-  },
-];

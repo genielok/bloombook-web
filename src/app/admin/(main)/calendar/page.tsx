@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
+import {
+  getCalendarBookings,
+  getStaffList,
+  getStudioInfo,
+} from "@/app/api/admins/admin";
+import { type BusinessHour } from "@/app/api/clients/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -18,32 +24,15 @@ import {
   type AdminBooking,
   type BookingStatus,
 } from "../components/bookings-data";
+import { type AdminStaff } from "../components/staff-data";
+import {
+  bookingStatusDotClass,
+  bookingStatusFilterOptions,
+  bookingStatusLabels,
+} from "../bookings/constants";
 
-const staffOptions = [
-  "All",
-  "Unassigned",
-  "Mara Voss",
-  "Lena Hoffmann",
-  "Emma Richter",
-  "Sophia Lindqvist",
-];
-
-const statusOptions: Array<BookingStatus | "All"> = [
-  "All",
-  "Pending",
-  "Confirmed",
-  "Completed",
-  "Cancelled",
-  "No-show",
-];
-
-const statusDotClass: Record<BookingStatus, string> = {
-  Pending: "bg-[#a06b3d]",
-  Confirmed: "bg-[#3d6b94]",
-  Completed: "bg-[#3f7350]",
-  Cancelled: "bg-[#b0453a]",
-  "No-show": "bg-[#8a4a5c]",
-};
+const ALL_STAFF = "All";
+const UNASSIGNED_STAFF = "Unassigned";
 
 function startOfMonday(date: Dayjs) {
   const daysSinceMonday = (date.day() + 6) % 7;
@@ -53,24 +42,83 @@ function startOfMonday(date: Dayjs) {
 export default function AdminCalendarPage() {
   const today = dayjs().startOf("day");
   const [weekOffset, setWeekOffset] = useState(0);
-  const [staff, setStaff] = useState("All");
+  const [staff, setStaff] = useState(ALL_STAFF);
   const [status, setStatus] = useState("All");
+  const [bookings, setBookings] = useState<AdminBooking[]>([]);
+  const [staffOptions, setStaffOptions] = useState<AdminStaff[]>([]);
+  const [businessHours, setBusinessHours] = useState<BusinessHour[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const weekStart = startOfMonday(today).add(weekOffset, "week");
   const weekDays = Array.from({ length: 7 }, (_, index) =>
     weekStart.add(index, "day"),
   );
   const weekLabel = `${weekDays[0].format("ddd D MMM")} – ${weekDays[6].format("ddd D MMM")}`;
+  const weekStartKey = weekStart.format("YYYY-MM-DD");
+  const weekEndKey = weekStart.add(6, "day").format("YYYY-MM-DD");
 
-  // const filteredBookings = useMemo(
-  //   () =>
-  //     adminBookings.filter(
-  //       (booking) =>
-  //         (staff === "All" || booking.staffName === staff) &&
-  //         (status === "All" || booking.status === status),
-  //     ),
-  //   [staff, status],
-  // );
+  useEffect(() => {
+    let cancelled = false;
+
+    void Promise.all([getStaffList(), getStudioInfo()])
+      .then(([staffResponse, studioResponse]) => {
+        if (cancelled) return;
+        setStaffOptions(staffResponse.data);
+        setBusinessHours(studioResponse.data.businessHours ?? []);
+      })
+      .catch((loadError) => {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load calendar filters.",
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadBookings = async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const response = await getCalendarBookings({
+          startDate: weekStartKey,
+          endDate: weekEndKey,
+          status: status === "All" ? null : (status as BookingStatus),
+          staffId:
+            staff === ALL_STAFF || staff === UNASSIGNED_STAFF ? null : staff,
+          unassignedOnly: staff === UNASSIGNED_STAFF,
+        });
+        if (!cancelled) setBookings(response.data);
+      } catch (loadError) {
+        if (!cancelled) {
+          setBookings([]);
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load bookings.",
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    void loadBookings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [staff, status, weekEndKey, weekStartKey]);
 
   return (
     <div className="mx-auto w-full max-w-[1600px]">
@@ -115,27 +163,52 @@ export default function AdminCalendarPage() {
             value={staff}
             onChange={setStaff}
             label="All staff"
-            items={staffOptions}
+            items={[
+              ALL_STAFF,
+              UNASSIGNED_STAFF,
+              ...staffOptions.map((option) => option.id),
+            ]}
+            getItemLabel={(item) =>
+              item === UNASSIGNED_STAFF
+                ? UNASSIGNED_STAFF
+                : (staffOptions.find((option) => option.id === item)?.name ??
+                  item)
+            }
           />
           <CalendarFilter
             value={status}
             onChange={setStatus}
             label="All statuses"
-            items={statusOptions}
+            items={bookingStatusFilterOptions}
+            getItemLabel={(item) =>
+              bookingStatusLabels[item as keyof typeof bookingStatusLabels]
+            }
           />
         </div>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {error}
+        </div>
+      )}
 
       <div className="overflow-x-auto pb-2">
         <div className="grid min-w-[1050px] grid-cols-7 gap-2.5">
           {weekDays.map((date) => {
             const dateKey = date.format("YYYY-MM-DD");
             const isToday = date.isSame(today, "day");
-            const isClosed = date.day() === 0;
-            const bookings: AdminBooking[] = [];
-            // const bookings = filteredBookings
-            //   .filter((booking) => booking.date === dateKey)
-            //   .sort((a, b) => a.startTime.localeCompare(b.startTime));
+            const dayOfWeek = (date.day() + 6) % 7;
+            const businessHour = businessHours.find(
+              (hours) => hours.dayOfWeek === dayOfWeek,
+            );
+            const isClosed = businessHour ? !businessHour.isOpen : false;
+            const dayBookings = bookings.filter(
+              (booking) => booking.date === dateKey,
+            );
 
             return (
               <CalendarDay
@@ -143,7 +216,8 @@ export default function AdminCalendarPage() {
                 date={date}
                 isToday={isToday}
                 isClosed={isClosed}
-                bookings={bookings}
+                isLoading={isLoading}
+                bookings={dayBookings}
               />
             );
           })}
@@ -157,11 +231,13 @@ function CalendarDay({
   date,
   isToday,
   isClosed,
+  isLoading,
   bookings,
 }: {
   date: Dayjs;
   isToday: boolean;
   isClosed: boolean;
+  isLoading: boolean;
   bookings: AdminBooking[];
 }) {
   return (
@@ -178,7 +254,11 @@ function CalendarDay({
       </CardHeader>
 
       <CardContent className="flex flex-col gap-1.5 px-2 py-2">
-        {isClosed ? (
+        {isLoading ? (
+          <p className="py-3.5 text-center text-xs text-bloom-subtle">
+            Loading…
+          </p>
+        ) : isClosed && bookings.length === 0 ? (
           <p className="py-3.5 text-center text-xs text-bloom-subtle">Closed</p>
         ) : bookings.length === 0 ? (
           <p className="py-3.5 text-center text-xs text-[#c8beb2]">—</p>
@@ -196,7 +276,7 @@ function CalendarDay({
                     {booking.startTime}
                   </span>
                   <span
-                    className={`size-[7px] rounded-full ${statusDotClass[booking.status]}`}
+                    className={`size-[7px] rounded-full ${bookingStatusDotClass[booking.status]}`}
                     title={booking.status}
                   />
                 </span>
@@ -207,6 +287,9 @@ function CalendarDay({
                   {booking.servicesSnapshot
                     .map((service) => service.name)
                     .join(", ")}
+                </span>
+                <span className="truncate text-[11px] font-normal text-bloom-subtle">
+                  {booking.staff?.name ?? "Unassigned"}
                 </span>
               </Link>
             </Button>
@@ -222,11 +305,13 @@ function CalendarFilter({
   onChange,
   label,
   items,
+  getItemLabel,
 }: {
   value: string;
   onChange: (value: string) => void;
   label: string;
   items: readonly string[];
+  getItemLabel?: (item: string) => string;
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
@@ -239,7 +324,7 @@ function CalendarFilter({
       <SelectContent>
         {items.map((item) => (
           <SelectItem key={item} value={item}>
-            {item === "All" ? label : item}
+            {item === "All" ? label : (getItemLabel?.(item) ?? item)}
           </SelectItem>
         ))}
       </SelectContent>

@@ -9,7 +9,7 @@ import {
 } from "react-hook-form";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import {
   AlertDialog,
@@ -33,13 +33,19 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AdminFormField, AdminInput } from "../../../components/admin-form";
+import { type AdminBooking } from "../../../components/bookings-data";
+import { type AdminStaff } from "../../../components/staff-data";
+import { BookingFormValues } from "../../const";
 import {
-  type AdminBooking,
   bookingStatusClass,
-  type BookingStatus,
-} from "../../../components/bookings-data";
-import { BookingFormValues, statusOptions } from "../../const";
-import { updateBookingDetail } from "@/app/api/admins/admin";
+  bookingStatusOptions,
+} from "../../constants";
+import {
+  getStaffList,
+  updateBookingDetail,
+} from "@/app/api/admins/admin";
+
+const UNASSIGNED_STAFF_VALUE = "__unassigned__";
 
 function InfoRow({
   label,
@@ -64,18 +70,20 @@ function InfoRow({
 
 export function BookingForm({ booking }: { booking: AdminBooking }) {
   const router = useRouter();
-  const [staffOptions, setStaffOptions] = useState([]);
+  const [staffOptions, setStaffOptions] = useState<AdminStaff[]>([]);
+  const [isStaffLoading, setIsStaffLoading] = useState(true);
+  const [staffError, setStaffError] = useState("");
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const {
     control,
     register,
     reset,
     handleSubmit,
-    formState: { errors, isDirty, isSubmitting, isLoading },
+    formState: { errors, isDirty, isSubmitting },
   } = useForm<BookingFormValues>({
     defaultValues: {
       status: booking.status,
-      staff: booking.staff,
+      staffId: booking.staff?.id ?? "",
       date: booking.date,
       startTime: booking.startTime,
       endTime: booking.endTime,
@@ -90,6 +98,31 @@ export function BookingForm({ booking }: { booking: AdminBooking }) {
     duration: service.durationMinutes,
     price: service.price,
   }));
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadStaff = async () => {
+      try {
+        const { data } = await getStaffList();
+        if (!cancelled) setStaffOptions(data);
+      } catch (error) {
+        if (!cancelled) {
+          setStaffError(
+            error instanceof Error ? error.message : "Unable to load staff.",
+          );
+        }
+      } finally {
+        if (!cancelled) setIsStaffLoading(false);
+      }
+    };
+
+    void loadStaff();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -152,7 +185,7 @@ export function BookingForm({ booking }: { booking: AdminBooking }) {
 
       reset({
         status: res.data.status,
-        staff: res.data.staff,
+        staffId: res.data.staff?.id ?? "",
         date: res.data.date,
         startTime: res.data.startTime,
         endTime: res.data.endTime,
@@ -246,7 +279,7 @@ export function BookingForm({ booking }: { booking: AdminBooking }) {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {statusOptions.map((option) => (
+                        {bookingStatusOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
@@ -257,33 +290,49 @@ export function BookingForm({ booking }: { booking: AdminBooking }) {
                 />
               </AdminFormField>
 
-              <AdminFormField label="Staff" htmlFor="booking-staff" required>
+              <AdminFormField label="Staff" htmlFor="booking-staff">
                 <Controller
-                  name="staff"
+                  name="staffId"
                   control={control}
-                  // rules={{ required: "Staff is required" }}
                   render={({ field }) => (
                     <Select
-                      value={field.value?.name}
-                      onValueChange={field.onChange}
+                      value={field.value || UNASSIGNED_STAFF_VALUE}
+                      onValueChange={(value) =>
+                        field.onChange(
+                          value === UNASSIGNED_STAFF_VALUE ? "" : value,
+                        )
+                      }
+                      disabled={isStaffLoading}
                     >
                       <SelectTrigger
                         id="booking-staff"
-                        aria-invalid={Boolean(errors.staff)}
+                        aria-invalid={Boolean(errors.staffId)}
                         className="h-9 w-full rounded-lg border-bloom-border bg-white px-3 text-[13px] shadow-none"
                       >
-                        <SelectValue />
+                        <SelectValue
+                          placeholder={
+                            isStaffLoading ? "Loading staff…" : "Select staff"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value={UNASSIGNED_STAFF_VALUE}>
+                          Unassigned
+                        </SelectItem>
                         {staffOptions.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
+                          <SelectItem key={option.id} value={option.id}>
+                            {option.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   )}
                 />
+                {staffError && (
+                  <p role="alert" className="text-xs text-red-500">
+                    {staffError}
+                  </p>
+                )}
               </AdminFormField>
 
               <AdminFormField label="Date" htmlFor="booking-date" required>

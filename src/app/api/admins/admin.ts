@@ -1,7 +1,6 @@
 import { post, get } from "@/app/lib/http";
 import {
   ApiResponse,
-  Booking,
   BusinessHour,
   CreateAccountParams,
   RegisterResponse,
@@ -13,8 +12,15 @@ import {
   AdminService,
   ServiceCategory,
 } from "@/app/admin/(main)/components/services-data";
-import { AdminBooking } from "@/app/admin/(main)/components/bookings-data";
+import {
+  AdminBooking,
+  BookingStatus,
+} from "@/app/admin/(main)/components/bookings-data";
 import { BookingFormValues } from "@/app/admin/(main)/bookings/const";
+import {
+  type AdminStaff,
+  type StaffFormValues,
+} from "@/app/admin/(main)/components/staff-data";
 
 export function createAdminAccount(params: CreateAccountParams) {
   return post<ApiResponse<RegisterResponse>>(
@@ -100,12 +106,61 @@ export async function getServiceList() {
   return get<ApiResponse<AdminService[]>>("/api/admin/services");
 }
 
+export function getStaffList() {
+  return get<ApiResponse<AdminStaff[]>>("/api/admin/staff");
+}
+
+export function createStaff(params: StaffFormValues) {
+  return post<ApiResponse<AdminStaff>>("/api/admin/staff/create", params);
+}
+
+export function editStaff(params: StaffFormValues & { id: string }) {
+  return post<ApiResponse<AdminStaff>>("/api/admin/staff/edit", params);
+}
+
+export function deleteStaff(id: string) {
+  return post<ApiResponse<null>>("/api/admin/staff/delete", { id });
+}
+
 export async function getBookingList(params: {
   limit: number;
   offset: number;
   customer?: string;
 }) {
   return post<ApiResponse<AdminBooking[]>>("/api/admin/bookings/list", params);
+}
+
+export type CalendarBookingParams = {
+  startDate: string;
+  endDate: string;
+  status: BookingStatus | null;
+  staffId: string | null;
+  unassignedOnly: boolean;
+};
+
+export function getCalendarBookings(params: CalendarBookingParams) {
+  return post<ApiResponse<AdminBooking[]>>(
+    "/api/admin/bookings/calendar",
+    params,
+  );
+}
+
+export type DashboardRevenueDay = {
+  date: string;
+  amount: number;
+};
+
+export type AdminDashboardData = {
+  revenueThisMonth: number;
+  revenueLast7Days: DashboardRevenueDay[];
+  todayBookingsCount: number;
+  upcomingBookingsCount: number;
+  completedThisMonthCount: number;
+  todayBookings: AdminBooking[];
+};
+
+export function getAdminDashboard() {
+  return get<ApiResponse<AdminDashboardData>>("/api/admin/dashboard");
 }
 
 export function getBookingDetail(
@@ -117,5 +172,10 @@ export function getBookingDetail(
 export function updateBookingDetail(
   params: BookingFormValues & { id: string },
 ) {
-  return post<ApiResponse<AdminBooking>>(`/api/admin/bookings/update`, params);
+  const { staffId, ...booking } = params;
+
+  return post<ApiResponse<AdminBooking>>(`/api/admin/bookings/update`, {
+    ...booking,
+    staffId: staffId || null,
+  });
 }
