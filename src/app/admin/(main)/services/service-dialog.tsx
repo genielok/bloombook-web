@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm, type SubmitHandler } from "react-hook-form";
 
 import {
@@ -76,20 +76,20 @@ export function ServiceDialog({
 }: ServiceDialogProps) {
   const [submitError, setSubmitError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
-  const formValues = useMemo(
-    () => getServiceValues(editingService),
-    [editingService],
-  );
-  const isEdit = useMemo(() => !!editingService, [editingService]);
+  const isEdit = Boolean(editingService);
   const {
     register,
     control,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ServiceFormValues>({
     defaultValues: EMPTY_SERVICE,
-    values: formValues,
   });
+
+  useEffect(() => {
+    if (open) reset(getServiceValues(editingService));
+  }, [editingService, open, reset]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     setSubmitError("");

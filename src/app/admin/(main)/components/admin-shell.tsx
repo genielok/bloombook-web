@@ -1,6 +1,12 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
@@ -45,7 +51,10 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { logoutAdmin } from "@/app/api/admins/admin";
+import { getStudioInfo, logoutAdmin } from "@/app/api/admins/admin";
+import { ApiError } from "@/app/lib/http";
+
+export const ADMIN_STUDIO_CREATED_EVENT = "bloombook:admin-studio-created";
 
 type NavigationItem = {
   title: string;
@@ -291,9 +300,93 @@ function AdminHeader({ pathname }: { pathname: string }) {
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [studioState, setStudioState] = useState<
+    "checking" | "exists" | "missing" | "error"
+  >("checking");
+
+  const checkStudio = useCallback(async () => {
+    setStudioState("checking");
+
+    try {
+      await getStudioInfo({ showErrorToast: false });
+      setStudioState("exists");
+    } catch (error) {
+      setStudioState(
+        error instanceof ApiError && error.status === 404 ? "missing" : "error",
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    if (pathname === "/admin/login" || pathname === "/admin/register") return;
+
+    let cancelled = false;
+
+    void getStudioInfo({ showErrorToast: false })
+      .then(() => {
+        if (!cancelled) setStudioState("exists");
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setStudioState(
+          error instanceof ApiError && error.status === 404
+            ? "missing"
+            : "error",
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleStudioCreated = () => setStudioState("exists");
+    window.addEventListener(ADMIN_STUDIO_CREATED_EVENT, handleStudioCreated);
+
+    return () => {
+      window.removeEventListener(
+        ADMIN_STUDIO_CREATED_EVENT,
+        handleStudioCreated,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    if (studioState === "missing" && pathname !== "/admin/settings") {
+      router.replace("/admin/settings?setup=studio");
+    }
+  }, [pathname, router, studioState]);
 
   if (pathname === "/admin/login" || pathname === "/admin/register") {
     return children;
+  }
+
+  const isStudioSetup =
+    studioState === "missing" && pathname === "/admin/settings";
+
+  if (studioState === "checking" || studioState === "missing" && !isStudioSetup) {
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-[#f7f2ec] text-sm text-bloom-subtle">
+        {studioState === "checking"
+          ? "Loading your studio…"
+          : "Opening studio setup…"}
+      </div>
+    );
+  }
+
+  if (studioState === "error") {
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-[#f7f2ec] px-6 text-center">
+        <p className="text-sm text-bloom-subtle">
+          We couldn&apos;t check your studio. Please try again.
+        </p>
+        <Button type="button" onClick={() => void checkStudio()}>
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   return (

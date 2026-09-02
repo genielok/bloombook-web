@@ -1,6 +1,7 @@
 "use client";
 import { IStudio } from "@/app/api/clients/types";
 import { Button } from "@/components/ui/button";
+import { getAssetUrl } from "@/lib/func";
 import Image from "next/image";
 
 export interface CardPros {
@@ -11,6 +12,7 @@ export interface CardPros {
 
 export const Card = (props: CardPros) => {
   const { studio, onBookClick } = props;
+  console.log(getAssetUrl(studio.imgUrl));
 
   return (
     <div
@@ -20,7 +22,7 @@ export const Card = (props: CardPros) => {
       <div className="relative h-[200px] w-full overflow-hidden">
         <Image
           fill
-          src={studio.imgUrl}
+          src={getAssetUrl(studio.imgUrl)}
           alt={studio.name}
           className="object-cover"
         />
@@ -30,9 +32,9 @@ export const Card = (props: CardPros) => {
           <div className="font-display text-[23px] leading-[1.1]">
             {studio.name}
           </div>
-          <div className="flex items-center gap-[5px] text-sm font-semibold">
+          {/* <div className="flex items-center gap-[5px] text-sm font-semibold">
             <span className="text-bloom-accent">★</span> {studio.rating}
-          </div>
+          </div> */}
         </div>
         <div className="text-sm text-bloom-subtle mt-1.5">
           {studio.address} , {studio.city}

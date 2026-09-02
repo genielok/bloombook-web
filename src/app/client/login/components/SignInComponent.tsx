@@ -4,11 +4,12 @@ import { signIn } from "@/app/api/clients/client";
 import { Button } from "@/components/ui/button";
 import { PaymentField } from "@/components/ui/field";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useState } from "react";
 
 export const SignInComponent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,7 +26,12 @@ export const SignInComponent = () => {
 
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      router.push("/client/account");
+      const callbackUrl = searchParams.get("callbackUrl");
+      router.push(
+        callbackUrl?.startsWith("/client/")
+          ? callbackUrl
+          : "/client/account",
+      );
       router.refresh();
     } finally {
       setIsSubmitting(false);

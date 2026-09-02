@@ -12,14 +12,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import Link from "next/link";
-import {
-  Bar,
-  BarChart,
-  type BarShapeProps,
-  CartesianGrid,
-  Rectangle,
-  XAxis,
-} from "recharts";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import dayjs from "dayjs";
 
 import {
@@ -45,7 +38,6 @@ import {
 import { bookingStatusClass, bookingStatusLabels } from "./bookings/constants";
 
 const EMPTY_DASHBOARD: AdminDashboardData = {
-  revenueThisMonth: 0,
   revenueLast7Days: [],
   todayBookingsCount: 0,
   upcomingBookingsCount: 0,
@@ -108,19 +100,20 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-function CustomBar({ x, y, width, height, payload }: BarShapeProps) {
-  const isToday = dayjs(payload.date).isSame(dayjs(), "day");
-
-  return (
-    <Rectangle
-      x={x}
-      y={y}
-      width={width}
-      height={height}
-      radius={[8, 8, 0, 0]}
-      fill={isToday ? "#d9a477" : "#6f6b66"}
-    />
+function getRevenueChartData(revenue: AdminDashboardData["revenueLast7Days"]) {
+  const revenueByDate = new Map(
+    revenue.map((day) => [dayjs(day.date).format("YYYY-MM-DD"), day.amount]),
   );
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = dayjs().subtract(6 - index, "day");
+    const dateKey = date.format("YYYY-MM-DD");
+
+    return {
+      date: dateKey,
+      amount: revenueByDate.get(dateKey) ?? 0,
+    };
+  });
 }
 
 export default function AdminDashboardPage() {
@@ -174,10 +167,11 @@ export default function AdminDashboardPage() {
       iconClassName: "bg-[#e6f0e8] text-[#3f7350]",
     },
   ];
-  const chartData = dashboard.revenueLast7Days.map((day) => ({
-    ...day,
-    weekday: dayjs(day.date).format("ddd"),
-  }));
+  const chartData = getRevenueChartData(dashboard.revenueLast7Days ?? []);
+  const revenueLast7Days = chartData.reduce(
+    (total, day) => total + day.amount,
+    0,
+  );
 
   return (
     <div className="w-full">
@@ -199,12 +193,10 @@ export default function AdminDashboardPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[15px] tracking-[0.03em] text-[#c8b6a5]">
-                  Revenue this month
+                  Revenue · Last 7 days
                 </p>
                 <p className="mt-3 font-display text-[42px] leading-none tracking-[-0.035em]">
-                  {isLoading
-                    ? "—"
-                    : currencyFormatter.format(dashboard.revenueThisMonth)}
+                  {isLoading ? "—" : currencyFormatter.format(revenueLast7Days)}
                 </p>
               </div>
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#483a2c] text-[#e8c39f]">
@@ -215,23 +207,57 @@ export default function AdminDashboardPage() {
               config={chartConfig}
               className="mt-auto h-[110px] w-full aspect-auto"
             >
-              <BarChart accessibilityLayer data={chartData}>
-                <CartesianGrid vertical={false} />
+              <LineChart accessibilityLayer data={chartData}>
+                <CartesianGrid vertical={false} strokeOpacity={0.15} />
                 <XAxis
-                  dataKey="weekday"
+                  dataKey="date"
                   tickLine={false}
-                  tickMargin={10}
+                  tickMargin={6}
                   axisLine={false}
+                  interval={0}
+                  tick={{ fill: "#c8b6a5", fontSize: 10 }}
+                  tickFormatter={(value: string) => dayjs(value).format("D/M")}
+                />
+                <YAxis
+                  tickLine={false}
+                  tickMargin={4}
+                  axisLine={false}
+                  width={38}
+                  allowDecimals={false}
+                  tick={{ fill: "#c8b6a5", fontSize: 10 }}
+                  tickFormatter={(value: number) => `€${value}`}
                 />
                 <ChartTooltip
                   cursor={false}
-                  content={<ChartTooltipContent hideLabel />}
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(_value, payload) =>
+                        payload[0]?.payload?.date
+                          ? dayjs(payload[0].payload.date).format(
+                              "dddd, D MMM YYYY",
+                            )
+                          : ""
+                      }
+                      formatter={(value) => (
+                        <div className="flex min-w-28 flex-1 items-center justify-between gap-4">
+                          <span className="text-muted-foreground">Revenue</span>
+                          <span className="font-mono font-medium text-foreground tabular-nums">
+                            {currencyFormatter.format(Number(value))}
+                          </span>
+                        </div>
+                      )}
+                    />
+                  }
                 />
-                <Bar
+                <Line
+                  type="monotone"
                   dataKey="amount"
-                  shape={(props: BarShapeProps) => <CustomBar {...props} />}
+                  stroke="var(--color-amount)"
+                  strokeWidth={2.5}
+                  dot={{ fill: "var(--color-amount)", r: 2, strokeWidth: 0 }}
+                  activeDot={{ r: 4, strokeWidth: 0 }}
                 />
-              </BarChart>
+              </LineChart>
             </ChartContainer>
           </CardContent>
         </Card>

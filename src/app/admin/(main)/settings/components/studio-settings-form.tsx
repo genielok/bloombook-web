@@ -17,13 +17,16 @@ import type { StudioBasic } from "@/app/api/clients/types";
 import type { StudioSettings } from "@/app/api/admins/admin";
 import { BusinessHourSettingsForm } from "./businessHour-settings-form";
 import { BookingSettingsForm } from "./booking-settings-form";
+import { StudioImageUpload } from "./studio-image-upload";
 
 export function StudioSettingsForm({
   studioInfo,
   onSave,
+  isSetup = false,
 }: {
   studioInfo: StudioBasic;
   onSave: (values: StudioSettings) => Promise<void>;
+  isSetup?: boolean;
 }) {
   const methods = useForm<StudioSettings>({
     values: {
@@ -64,14 +67,28 @@ export function StudioSettingsForm({
         >
         <div>
           <h2 className="text-sm font-semibold text-bloom-text">
-            Studio information
+            {isSetup ? "Set up your studio" : "Studio information"}
           </h2>
           <p className="mt-1 text-xs text-bloom-subtle">
-            Details customers see when they visit your studio page.
+            {isSetup
+              ? "Add your studio details before using the admin dashboard."
+              : "Details customers see when they visit your studio page."}
           </p>
         </div>
 
         <div className="mt-5 flex flex-col gap-4">
+          <Controller
+            name="imgUrl"
+            control={control}
+            render={({ field }) => (
+              <StudioImageUpload
+                value={field.value}
+                disabled={isSubmitting}
+                onChange={field.onChange}
+              />
+            )}
+          />
+
           <div className="grid gap-3.5 sm:grid-cols-2">
             <AdminFormField label="Studio name" htmlFor="studio-name" required>
               <AdminInput
@@ -211,7 +228,11 @@ export function StudioSettingsForm({
         <div className="mt-6">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Spinner data-icon="inline-start" />}
-            {isSubmitting ? "Saving..." : "Save studio settings"}
+            {isSubmitting
+              ? "Saving..."
+              : isSetup
+                ? "Create studio"
+                : "Save studio settings"}
           </Button>
         </div>
         </form>

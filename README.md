@@ -14,10 +14,11 @@ This repository is the **frontend**, built with Next.js. It talks to a separate 
 
 **Admin side** (studio-facing)
 - Sidebar dashboard shell (calendar, bookings, services, staff, settings) built on `shadcn/ui`
-- Bookings list and detail view with status handling (confirmed / pending / cancelled)
+- Dashboard overview with booking metrics, today's appointments, and a rolling 7-day daily revenue chart
+- Bookings list and detail view with status handling and staff assignment
 - Calendar view of scheduled appointments
 - Basic staff management (list, add, edit, delete)
-- Service catalog management (create/edit services with category, price, duration)
+- Service catalog management (create/edit services and control whether they are bookable)
 - Studio settings: account info, business hours, booking policy/rules
 - Admin authentication (login/register) separate from client auth
 
@@ -68,7 +69,12 @@ npm run check       # typecheck + lint
 npm run build        # production build
 ```
 
-## Staff API contract
+## Admin API contracts
+
+All admin requests are authenticated with the admin session cookie and use the
+shared `{ code, message, data, total }` response envelope.
+
+### Staff
 
 The basic staff UI expects authenticated JSON endpoints under the admin API:
 
@@ -80,7 +86,29 @@ The basic staff UI expects authenticated JSON endpoints under the admin API:
 | `POST` | `/api/admin/staff/delete` | `{ id }` | `null` |
 
 `StaffInput` contains `name`, `email`, `phone`, `role`, and `bio` as strings.
-`Staff` adds an `id` string. Responses use the shared
-`{ code, message, data, total }` envelope. The backend should scope every
-operation to the authenticated admin's studio; deletion may be implemented as
-a soft delete when booking history references the staff member.
+`Staff` adds an `id` string. The backend should scope every operation to the
+authenticated admin's studio; deletion may be implemented as a soft delete
+when booking history references the staff member.
+
+### Services
+
+Service create/edit payloads include `description` and `active`. The service
+list exposes an Active switch that calls:
+
+| Method | Endpoint | Request body | Response `data` |
+| --- | --- | --- | --- |
+| `POST` | `/api/admin/services/status` | `{ id, active }` | `Service` |
+
+Inactive services remain visible to the studio admin but are excluded from the
+customer-facing studio detail, availability checks, and new bookings.
+
+Booking updates accept `staffId: string | null` at
+`POST /api/admin/bookings/update`. The booking detail response returns the
+assigned staff as `staff: Staff | null`.
+
+### Dashboard revenue
+
+The `GET /api/admin/dashboard` response supplies the revenue chart as
+`revenueLast7Days: Array<{ date: string; amount: number }>`, with dates in
+`YYYY-MM-DD` format. It may omit dates with no revenue; the frontend fills any
+missing days in the rolling 7-day window with zero.

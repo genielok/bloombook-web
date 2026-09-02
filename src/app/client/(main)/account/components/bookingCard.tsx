@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import dayjs from "dayjs";
+import { getAssetUrl } from "@/lib/func";
 
 export const statusStyles: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -33,7 +34,7 @@ export function BookingCard({
           <Image
             fill
             className="object-cover"
-            src={booking.salon.imgUrl}
+            src={getAssetUrl(booking.salon.imgUrl)}
             alt={booking.salon.name}
           />
         </div>

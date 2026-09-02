@@ -33,10 +33,10 @@ const accountNavItems = [
     label: "Profile",
     href: "/client/account/profile",
   },
-  {
-    label: "Setting",
-    href: "/client/account/setting",
-  },
+  // {
+  //   label: "Setting",
+  //   href: "/client/account/setting",
+  // },
 ];
 
 function isActivePath(

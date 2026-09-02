@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 
 type RescheduleBooking = {
   bookingId: string;
@@ -24,7 +24,7 @@ type RescheduleBooking = {
   selectedServiceIds: string[];
 };
 
-const ReschedulePage = () => {
+const RescheduleContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingParam = searchParams.get("booking"); // 已 encodeURIComponent(JSON.stringify(booking))
@@ -76,7 +76,7 @@ const ReschedulePage = () => {
         onTimeChange={setSelectedTime}
       ></DateTimeSelector>
       <AlertDialog>
-        <AlertDialogTrigger>
+        <AlertDialogTrigger asChild>
           <Button className=" mt-8 rounded-full bg-bloom-text px-7 py-6 text-base font-semibold text-bloom-bg hover:bg-bloom-text/90">
             Confirm
           </Button>
@@ -107,4 +107,10 @@ const ReschedulePage = () => {
   );
 };
 
-export default ReschedulePage;
+export default function ReschedulePage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading booking...</div>}>
+      <RescheduleContent />
+    </Suspense>
+  );
+}

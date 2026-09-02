@@ -1,4 +1,4 @@
-import { post, get } from "@/app/lib/http";
+import { get, post, upload } from "@/app/lib/http";
 import {
   ApiResponse,
   BusinessHour,
@@ -69,8 +69,18 @@ export async function updateStudioSettings(params: StudioSettings) {
   );
 }
 
-export async function getStudioInfo() {
-  return get<ApiResponse<StudioBasic>>("/api/admin/salons/detail");
+export async function createStudio(params: StudioSettings) {
+  return post<ApiResponse<StudioBasic>>("/api/admin/salons/create", params);
+}
+
+export async function getStudioInfo(options?: { showErrorToast?: boolean }) {
+  return get<ApiResponse<StudioBasic>>("/api/admin/salons/detail", options);
+}
+
+export function uploadStudioImage(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return upload<ApiResponse<{ url: string }>>("/api/upload", formData);
 }
 
 export type ServiceFormValues = {
@@ -96,8 +106,15 @@ export async function createService(params: ServiceFormValues) {
   return post<ApiResponse<AdminService>>("/api/admin/services/create", params);
 }
 export async function editService(params: EditServiceFormValues) {
-  return post<ApiResponse<EditServiceFormValues>>(
+  return post<ApiResponse<AdminService>>(
     "/api/admin/services/edit",
+    params,
+  );
+}
+
+export function updateServiceActive(params: { id: string; active: boolean }) {
+  return post<ApiResponse<AdminService>>(
+    "/api/admin/services/status",
     params,
   );
 }
@@ -151,7 +168,6 @@ export type DashboardRevenueDay = {
 };
 
 export type AdminDashboardData = {
-  revenueThisMonth: number;
   revenueLast7Days: DashboardRevenueDay[];
   todayBookingsCount: number;
   upcomingBookingsCount: number;

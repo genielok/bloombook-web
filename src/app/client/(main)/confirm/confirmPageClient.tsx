@@ -6,6 +6,8 @@ import type { Booking } from "@/app/api/clients/types";
 import { useEffect, useState } from "react";
 import { fetchBookingDetail } from "@/app/api/clients/client";
 import Image from "next/image";
+import { downloadICS } from "@/lib/utils";
+import { getAssetUrl } from "@/lib/func";
 interface Props {
   bookingId: string;
 }
@@ -29,6 +31,15 @@ export const ConfirmPageClient = (props: Props) => {
 
   const formatCurrency = (amount: number) => `€${amount.toFixed(2)}`;
 
+  const handleDownloadICS = () => {
+    downloadICS({
+      title: `Appointment at ${bookingDetail?.salon.name}`,
+      description: `${bookingDetail?.servicesSnapshot.map((item) => item.name).join(",")} `,
+      location: bookingDetail?.salon.address,
+      startTime: new Date(`${bookingDetail?.date} ${bookingDetail?.startTime}`),
+      endTime: new Date(`${bookingDetail?.date} ${bookingDetail?.endTime}`),
+    });
+  };
   if (!bookingDetail) {
     return <div>Fail</div>;
   }
@@ -56,12 +67,10 @@ export const ConfirmPageClient = (props: Props) => {
 
           <div className="mt-9 flex flex-wrap gap-3.5">
             <Button
-              asChild
               className="rounded-full bg-bloom-text px-7 py-6 text-base font-semibold text-bloom-bg hover:bg-bloom-text/90"
+              onClick={handleDownloadICS}
             >
-              <Link href={`/client/confirm?bookingId=${bookingId}`}>
-                Add to calendar
-              </Link>
+              Add to calendar
             </Button>
             <Button
               asChild
@@ -90,7 +99,7 @@ export const ConfirmPageClient = (props: Props) => {
               <Image
                 fill
                 className="object-cover"
-                src={bookingDetail?.salon.imgUrl}
+                src={getAssetUrl(bookingDetail.salon.imgUrl)}
                 alt={bookingDetail?.salon.name}
               ></Image>
             </div>

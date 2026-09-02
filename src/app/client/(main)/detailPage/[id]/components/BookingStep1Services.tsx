@@ -57,10 +57,10 @@ export function BookingStep1Services({
                   <span>·</span>
                   <span>{shopDetail.address}</span>
                   <span>·</span>
-                  <span className="inline-flex items-center gap-1 text-bloom-accent">
+                  {/* <span className="inline-flex items-center gap-1 text-bloom-accent">
                     <Star className="h-4 w-4 fill-current" />
                     {shopDetail.rating} ({shopDetail.reviewNum})
-                  </span>
+                  </span> */}
                 </div>
               </div>
             </div>

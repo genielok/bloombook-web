@@ -9,8 +9,9 @@ import {
 import { Switch } from "@/components/ui/switch";
 
 export function getServiceColumns(
-  onToggle: (id: string) => void,
+  onToggle: (id: string, active: boolean) => Promise<void> | void,
   onEdit: (service: AdminService) => void,
+  updatingServiceIds: Set<string>,
 ): ColumnDef<AdminService>[] {
   return [
     {
@@ -60,8 +61,12 @@ export function getServiceColumns(
         return (
           <Switch
             checked={service.active}
-            onClick={() => onToggle(service.id)}
-          ></Switch>
+            disabled={updatingServiceIds.has(service.id)}
+            onCheckedChange={(active) => {
+              void onToggle(service.id, active);
+            }}
+            aria-label={`${service.active ? "Deactivate" : "Activate"} ${service.name}`}
+          />
         );
       },
     },

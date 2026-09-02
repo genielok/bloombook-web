@@ -1,3 +1,5 @@
+import { BookingStatus } from "@/app/admin/(main)/components/bookings-data";
+
 export interface IBookingDetail {
   bookingId: string;
   bookingReference: string;
@@ -213,7 +215,7 @@ export interface Booking {
   date: string;
   startTime: string;
   endTime: string;
-  status: "confirmed" | "cancelled" | "pending";
+  status: BookingStatus;
   createdAt: string;
 }
 

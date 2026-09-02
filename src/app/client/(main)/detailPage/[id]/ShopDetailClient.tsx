@@ -14,6 +14,7 @@ import { confirmBook, fetchShopDetail } from "@/app/api/clients/client";
 import dayjs from "dayjs";
 import Image from "next/image";
 import { IShopDetail } from "@/app/api/clients/types";
+import { getAssetUrl } from "@/lib/func";
 
 export const ShopeDetailClient = ({ id }: { id: string }) => {
   const router = useRouter();
@@ -24,10 +25,10 @@ export const ShopeDetailClient = ({ id }: { id: string }) => {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [shopDetail, setShopDetail] = useState<IShopDetail>();
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
-    fullName: "Sofia Lindqvist",
-    phone: "+49 170 555 0142",
-    email: "genielok6@gmail.com",
-    note: "First visit — a little nervous, please go gentle :)",
+    fullName: "",
+    phone: "",
+    email: "",
+    note: "",
   });
 
   useEffect(() => {
@@ -98,7 +99,7 @@ export const ShopeDetailClient = ({ id }: { id: string }) => {
 
   return (
     <>
-      <div className="max-w-5xl mx-auto py-4">
+      <div className="max-w-5xl mx-auto py-4 px-4">
         <div className="mb-4">
           <BookingStepper currentStep={step} />
         </div>
@@ -106,7 +107,7 @@ export const ShopeDetailClient = ({ id }: { id: string }) => {
           <Image
             fill
             className="object-cover"
-            src={shopDetail.imgUrl}
+            src={getAssetUrl(shopDetail.imgUrl)}
             alt={shopDetail.name}
           />
         </div>

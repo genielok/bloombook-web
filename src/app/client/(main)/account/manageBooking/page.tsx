@@ -2,13 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Copy,
-  ExternalLink,
-  MailIcon,
-  PhoneCallIcon,
-} from "lucide-react";
-import { useEffect, useState } from "react";
+import { Copy, ExternalLink, MailIcon, PhoneCallIcon } from "lucide-react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { fetchBookingDetail, cancelBooking } from "@/app/api/clients/client";
 import { Button } from "@/components/ui/button";
@@ -27,12 +22,31 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Toast from "@/components/Toast";
+import { bookingStatusFilterOptions } from "@/app/admin/(main)/bookings/constants";
 
 function formatCurrency(amount?: number) {
   return amount === undefined ? "Not provided" : `€${amount.toFixed(2)}`;
 }
 
 export default function ManageBookingPage() {
+  return (
+    <Suspense fallback={<BookingPageLoading />}>
+      <ManageBookingContent />
+    </Suspense>
+  );
+}
+
+function BookingPageLoading() {
+  return (
+    <div className="px-5 py-8 md:px-8 lg:px-12 lg:py-10">
+      <div className="rounded-[12px] border border-bloom-border bg-white p-5 text-sm text-bloom-subtle">
+        Loading booking...
+      </div>
+    </div>
+  );
+}
+
+function ManageBookingContent() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
   const [booking, setBooking] = useState<Booking>();
@@ -59,13 +73,7 @@ export default function ManageBookingPage() {
   }, [bookingId]);
 
   if (isLoading) {
-    return (
-      <div className="px-5 py-8 md:px-8 lg:px-12 lg:py-10">
-        <div className="rounded-[12px] border border-bloom-border bg-white p-5 text-sm text-bloom-subtle">
-          Loading booking...
-        </div>
-      </div>
-    );
+    return <BookingPageLoading />;
   }
 
   if (!booking) {
@@ -130,6 +138,54 @@ function BookingDetail({ booking }: { booking: Booking }) {
       `/client/account/reschedule?booking=${encodeURIComponent(JSON.stringify(params))}`,
     );
   };
+
+  const ScheduleButtons = useMemo(() => {
+    if (booking.status === "cancelled" || booking.status === "completed")
+      return;
+    return (
+      <>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Button
+            onClick={handleSchedule}
+            className="rounded-full  px-9 py-7 text-[17px] font-bold  "
+          >
+            Reschedule
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="rounded-full  px-9 py-7 text-[17px] font-bold bg-red-200"
+              >
+                Cancel booking
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+              </AlertDialogHeader>
+              <AlertDescription>
+                Are you sure you want to cancel this booking?
+              </AlertDescription>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleCancel}>
+                  Continue
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+        <div>
+          <p className="mt-5 text-[15px] font-semibold text-bloom-subtle">
+            Free to reschedule or cancel up to{" "}
+            <span className="font-bold text-bloom-text">24 hours before</span>{" "}
+            your appointment.
+          </p>
+        </div>
+      </>
+    );
+  }, [booking?.status]);
 
   return (
     <div className="px-5 py-8 md:px-8 lg:px-12 lg:py-12">
@@ -233,52 +289,7 @@ function BookingDetail({ booking }: { booking: Booking }) {
             </div>
           </div>
         </section>
-
-        {booking.status !== "cancelled" && (
-          <>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button
-                onClick={handleSchedule}
-                className="rounded-full  px-9 py-7 text-[17px] font-bold  "
-              >
-                Reschedule
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger>
-                  <Button
-                    variant="outline"
-                    className="rounded-full bg-bloom-text px-9 py-7 text-[17px] font-bold text-bloom-bg hover:bg-bloom-text/90"
-                  >
-                    Cancel booking
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
-                  </AlertDialogHeader>
-                  <AlertDescription>
-                    Are you sure you want to cancel this booking?
-                  </AlertDescription>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCancel}>
-                      Continue
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-            <div>
-              <p className="mt-5 text-[15px] font-semibold text-bloom-subtle">
-                Free to reschedule or cancel up to{" "}
-                <span className="font-bold text-bloom-text">
-                  24 hours before
-                </span>{" "}
-                your appointment.
-              </p>
-            </div>
-          </>
-        )}
+        {ScheduleButtons}
       </div>
       <Toast
         visible={showSuccess}

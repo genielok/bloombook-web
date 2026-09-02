@@ -2,7 +2,7 @@ import { API_BASE_URL } from "@/app/lib/http";
 import * as z from "zod";
 
 export function getAssetUrl(path?: string) {
-  if (!path) return undefined;
+  if (!path) return "";
   if (/^(https?:|blob:|data:)/.test(path)) {
     return path;
   }

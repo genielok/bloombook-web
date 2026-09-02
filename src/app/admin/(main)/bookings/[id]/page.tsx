@@ -18,20 +18,24 @@ export default function AdminBookingDetailPage() {
   const [booking, setBooking] = useState<AdminBooking>();
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchBooking = async (bookingId: string) => {
-    try {
-      setIsLoading(true);
-      const { data } = await getBookingDetail(bookingId);
-      setBooking(data);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    id && fetchBooking(id);
+    if (!id) return;
+    let ignore = false;
+
+    void getBookingDetail(id)
+      .then(({ data }) => {
+        if (!ignore) setBooking(data);
+      })
+      .catch((error: unknown) => {
+        console.log(error);
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [id]);
 
   if (isLoading) {

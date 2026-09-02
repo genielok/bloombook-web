@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { CreateAccountComponent } from "./components/CreateAccountComponent";
 import { SignInComponent } from "./components/SignInComponent";
 // import Image from "next/image";
@@ -79,7 +80,9 @@ export default async function LoginPage({
             {isCreatingAccount ? (
               <CreateAccountComponent />
             ) : (
-              <SignInComponent />
+              <Suspense fallback={null}>
+                <SignInComponent />
+              </Suspense>
             )}
           </div>
 

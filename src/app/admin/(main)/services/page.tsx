@@ -17,7 +17,7 @@ import {
   SERVICE_CATEGORY_LABELS,
 } from "../components/services-data";
 import { getServiceColumns } from "./const";
-import { getServiceList } from "@/app/api/admins/admin";
+import { getServiceList, updateServiceActive } from "@/app/api/admins/admin";
 import { ServiceDialog } from "./service-dialog";
 
 export default function AdminServicesPage() {
@@ -25,6 +25,9 @@ export default function AdminServicesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<AdminService | null>(
     null,
+  );
+  const [updatingServiceIds, setUpdatingServiceIds] = useState<Set<string>>(
+    new Set(),
   );
   const categories = useMemo(
     () =>
@@ -45,12 +48,21 @@ export default function AdminServicesPage() {
       .catch((error) => console.log(error));
   }, []);
 
-  const toggleService = useCallback((id: string) => {
-    setServices((current) =>
-      current.map((service) =>
-        service.id === id ? { ...service, active: !service.active } : service,
-      ),
-    );
+  const toggleService = useCallback(async (id: string, active: boolean) => {
+    setUpdatingServiceIds((current) => new Set(current).add(id));
+
+    try {
+      const { data } = await updateServiceActive({ id, active });
+      setServices((current) =>
+        current.map((service) => (service.id === id ? data : service)),
+      );
+    } finally {
+      setUpdatingServiceIds((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+    }
   }, []);
 
   const openCreateDialog = () => {
@@ -64,8 +76,8 @@ export default function AdminServicesPage() {
   }, []);
 
   const columns = useMemo(
-    () => getServiceColumns(toggleService, openEditDialog),
-    [openEditDialog, toggleService],
+    () => getServiceColumns(toggleService, openEditDialog, updatingServiceIds),
+    [openEditDialog, toggleService, updatingServiceIds],
   );
 
   return (
