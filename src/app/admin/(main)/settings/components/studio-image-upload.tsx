@@ -19,10 +19,12 @@ export function StudioImageUpload({
   value,
   onChange,
   disabled = false,
+  disabledReason,
 }: {
   value?: string;
   onChange: (url: string) => void;
   disabled?: boolean;
+  disabledReason?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -134,7 +136,9 @@ export function StudioImageUpload({
 
       <div className="flex min-h-8 items-start justify-between gap-3">
         <div>
-          <p className="text-xs text-bloom-subtle">JPG or PNG. Maximum 2 MB.</p>
+          <p className="text-xs text-bloom-subtle">
+            {disabledReason ?? "JPG or PNG. Maximum 2 MB."}
+          </p>
           {validationError && (
             <p role="alert" className="mt-1 text-xs text-red-500">
               {validationError}

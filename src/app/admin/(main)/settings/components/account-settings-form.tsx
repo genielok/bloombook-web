@@ -1,14 +1,13 @@
 "use client";
 
-import { SubmitEventHandler, useEffect, useState } from "react";
+import type { SubmitEventHandler } from "react";
 import { useForm } from "react-hook-form";
 
 import { AdminFormField, AdminInput } from "../../components/admin-form";
 import { Spinner } from "@/components/ui/spinner";
-import { handleUpdateAdminAccount } from "@/app/api/admins/admin";
 import { Button } from "@/components/ui/button";
-import Toast from "@/components/Toast";
 import type { AccountFormValues } from "../page";
+import { useDemoMode } from "../../components/demo-mode-context";
 
 type Params = {
   accountInfo: AccountFormValues;
@@ -16,10 +15,10 @@ type Params = {
 };
 
 export function AccountSettingsForm({ accountInfo, onSave }: Params) {
+  const isDemo = useDemoMode();
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors, isSubmitting },
   } = useForm<AccountFormValues>({
     values: accountInfo,
@@ -27,6 +26,7 @@ export function AccountSettingsForm({ accountInfo, onSave }: Params) {
 
   const submit: SubmitEventHandler<HTMLFormElement> = handleSubmit(
     async (data) => {
+      if (isDemo) return;
       try {
         await onSave(data);
       } catch (error) {
@@ -45,9 +45,16 @@ export function AccountSettingsForm({ accountInfo, onSave }: Params) {
         className="rounded-[10px] border border-bloom-border bg-white px-[26px] py-6"
       >
         <div className="flex flex-col gap-4">
+          {isDemo && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Account settings are locked so everyone can keep using the demo
+              login.
+            </p>
+          )}
           <AdminFormField label="Full name" htmlFor="account-name" required>
             <AdminInput
               required
+              disabled={isDemo}
               {...register("name", {
                 required: "Name is required",
                 minLength: {
@@ -74,6 +81,7 @@ export function AccountSettingsForm({ accountInfo, onSave }: Params) {
               })}
               type="email"
               required
+              disabled={isDemo}
             />
             {errors.email && (
               <span role="alert" className="text-red-500 text-sm">
@@ -82,9 +90,13 @@ export function AccountSettingsForm({ accountInfo, onSave }: Params) {
             )}
           </AdminFormField>
           <div>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || isDemo}>
               {isSubmitting && <Spinner data-icon="inline-start" />}
-              {isSubmitting ? "Saving..." : "Save changes"}
+              {isDemo
+                ? "Locked in Demo Mode"
+                : isSubmitting
+                  ? "Saving..."
+                  : "Save changes"}
             </Button>
           </div>
         </div>

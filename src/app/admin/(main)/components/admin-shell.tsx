@@ -16,6 +16,7 @@ import {
   LogOut,
   Search,
   Settings,
+  ShieldCheck,
   Tags,
   UserRound,
   Users,
@@ -51,8 +52,13 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { getStudioInfo, logoutAdmin } from "@/app/api/admins/admin";
+import {
+  getCurrentAdminUser,
+  getStudioInfo,
+  logoutAdmin,
+} from "@/app/api/admins/admin";
 import { ApiError } from "@/app/lib/http";
+import { DemoModeProvider } from "./demo-mode-context";
 
 export const ADMIN_STUDIO_CREATED_EVENT = "bloombook:admin-studio-created";
 
@@ -304,6 +310,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [studioState, setStudioState] = useState<
     "checking" | "exists" | "missing" | "error"
   >("checking");
+  const [isDemo, setIsDemo] = useState(false);
 
   const checkStudio = useCallback(async () => {
     setStudioState("checking");
@@ -334,6 +341,23 @@ export function AdminShell({ children }: { children: ReactNode }) {
             ? "missing"
             : "error",
         );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    if (pathname === "/admin/login" || pathname === "/admin/register") return;
+
+    let cancelled = false;
+    void getCurrentAdminUser()
+      .then((response) => {
+        if (!cancelled) setIsDemo(response.data.isDemo);
+      })
+      .catch(() => {
+        if (!cancelled) setIsDemo(false);
       });
 
     return () => {
@@ -390,24 +414,38 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <TooltipProvider>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "14.75rem",
-            "--sidebar-width-icon": "3.5rem",
-          } as CSSProperties
-        }
-        className="h-svh min-h-0 bg-[#f7f2ec] text-bloom-text"
-      >
-        <AdminSidebar pathname={pathname} />
-        <SidebarInset className="h-svh min-w-0 overflow-hidden bg-[#f7f2ec]">
-          <AdminHeader pathname={pathname} />
-          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7">
-            {children}
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </TooltipProvider>
+    <DemoModeProvider enabled={isDemo}>
+      <TooltipProvider>
+        <SidebarProvider
+          style={
+            {
+              "--sidebar-width": "14.75rem",
+              "--sidebar-width-icon": "3.5rem",
+            } as CSSProperties
+          }
+          className="h-svh min-h-0 bg-[#f7f2ec] text-bloom-text"
+        >
+          <AdminSidebar pathname={pathname} />
+          <SidebarInset className="h-svh min-w-0 overflow-hidden bg-[#f7f2ec]">
+            <AdminHeader pathname={pathname} />
+            {isDemo && (
+              <div
+                role="status"
+                className="flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 sm:px-6 lg:px-7"
+              >
+                <ShieldCheck className="size-4 shrink-0" />
+                <span>
+                  <strong>Demo Mode:</strong> try services, staff and bookings.
+                  Account details and image uploads are locked.
+                </span>
+              </div>
+            )}
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7">
+              {children}
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+      </TooltipProvider>
+    </DemoModeProvider>
   );
 }

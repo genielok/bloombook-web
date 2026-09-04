@@ -16,6 +16,9 @@ import {
 
 type AdminAuthMode = "login" | "register";
 
+const DEMO_EMAIL = "demo.admin@bloombook.app";
+const DEMO_PASSWORD = "BloomBookDemo2026!";
+
 export function AdminAuthPage({ mode }: { mode: AdminAuthMode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,6 +71,23 @@ export function AdminAuthPage({ mode }: { mode: AdminAuthMode }) {
 
       const callbackUrl = searchParams.get("callbackUrl");
       router.push(callbackUrl?.startsWith("/admin/") ? callbackUrl : "/admin");
+      router.refresh();
+    } catch (error: unknown) {
+      applyApiError(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const signInToDemo = async () => {
+    clearErrors();
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setIsSubmitting(true);
+
+    try {
+      await adminSignIn({ email: DEMO_EMAIL, password: DEMO_PASSWORD });
+      router.push("/admin");
       router.refresh();
     } catch (error: unknown) {
       applyApiError(error);
@@ -224,6 +244,23 @@ export function AdminAuthPage({ mode }: { mode: AdminAuthMode }) {
                 : "Sign in"}
           </Button>
         </form>
+
+        {!isRegister && (
+          <div className="mt-5 border-t border-bloom-border pt-5">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSubmitting}
+              onClick={() => void signInToDemo()}
+              className="h-12 w-full rounded-xl border-amber-300 bg-amber-50 text-sm font-semibold text-amber-950 hover:bg-amber-100"
+            >
+              Try the public demo
+            </Button>
+            <p className="mt-2 text-center text-xs text-bloom-subtle">
+              No signup needed. Demo data may be reset periodically.
+            </p>
+          </div>
+        )}
 
         <p className="mt-8 text-center text-[15px] text-bloom-subtle">
           {isRegister ? "Already have an account? " : "New to Bloombook? "}

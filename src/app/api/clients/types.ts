@@ -244,4 +244,5 @@ export interface User {
   role: "client" | "admin";
   avatarImg?: string;
   phone?: string;
+  isDemo: boolean;
 }

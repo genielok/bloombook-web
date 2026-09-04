@@ -18,6 +18,7 @@ import type { StudioSettings } from "@/app/api/admins/admin";
 import { BusinessHourSettingsForm } from "./businessHour-settings-form";
 import { BookingSettingsForm } from "./booking-settings-form";
 import { StudioImageUpload } from "./studio-image-upload";
+import { useDemoMode } from "../../components/demo-mode-context";
 
 export function StudioSettingsForm({
   studioInfo,
@@ -28,6 +29,7 @@ export function StudioSettingsForm({
   onSave: (values: StudioSettings) => Promise<void>;
   isSetup?: boolean;
 }) {
+  const isDemo = useDemoMode();
   const methods = useForm<StudioSettings>({
     values: {
       name: studioInfo.name,
@@ -83,7 +85,10 @@ export function StudioSettingsForm({
             render={({ field }) => (
               <StudioImageUpload
                 value={field.value}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isDemo}
+                disabledReason={
+                  isDemo ? "Image uploads are locked in Demo Mode." : undefined
+                }
                 onChange={field.onChange}
               />
             )}
